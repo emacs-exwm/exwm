@@ -135,16 +135,11 @@ defined in `exwm-mode-map' here."
 
 (defvar exwm-input--timestamp-window nil)
 
-(defvar exwm-input--update-focus-defer-timer nil "Timer for polling the lock.")
-
-(defvar exwm-input--update-focus-lock nil
-  "Lock for solving input focus update contention.")
-
 (defvar exwm-input--update-focus-timer nil
   "Timer for deferring the update of input focus.")
 
-(defvar exwm-input--update-focus-window nil "The (Emacs) window to be focused.
-This value should always be overwritten.")
+(defvar exwm-input--update-focus-window nil
+  "The window we're currently attempting to focus.")
 
 (defvar exwm-input--echo-area-timer nil "Timer for detecting echo area dirty.")
 
@@ -305,37 +300,40 @@ ARGS are additional arguments to CALLBACK."
          (exwm--terminal-p))      ; skip other terminals, e.g. TTY client frames
     (exwm--log "current-buffer=%S selected-window=%S"
                (current-buffer) (selected-window))
-    (redirect-frame-focus (selected-frame) nil)
-    (setq exwm-input--update-focus-window (selected-window))
     (exwm-input--update-focus-defer)))
 
 (defun exwm-input--update-focus-defer ()
   "Defer updating input focus."
-  (when exwm-input--update-focus-defer-timer
-    (cancel-timer exwm-input--update-focus-defer-timer))
-  (if exwm-input--update-focus-lock
-      (setq exwm-input--update-focus-defer-timer
-            (exwm--defer 0 #'exwm-input--update-focus-defer))
-    (setq exwm-input--update-focus-defer-timer nil)
-    (when exwm-input--update-focus-timer
-      (cancel-timer exwm-input--update-focus-timer))
-    (setq exwm-input--update-focus-timer
-          ;; Attempt to accumulate successive events close enough.
-          (run-with-timer exwm-input--update-focus-interval
-                          nil
-                          #'exwm-input--update-focus-commit
-                          exwm-input--update-focus-window))))
+  (redirect-frame-focus (selected-frame) nil)
+  (when exwm-input--update-focus-timer
+    (cancel-timer exwm-input--update-focus-timer))
+  (setq exwm-input--update-focus-timer
+        ;; Attempt to accumulate successive events close enough.
+        (run-with-timer exwm-input--update-focus-interval
+                        nil
+                        #'exwm-input--update-focus-commit
+                        (selected-window))))
 
 (defun exwm-input--update-focus-commit (window)
   "Commit updating input focus."
-  (setq exwm-input--update-focus-lock t)
-  (unwind-protect
-      (exwm-input--update-focus window)
-    (setq exwm-input--update-focus-lock nil)))
+  (let ((cwin (selected-window)))
+    (if exwm-input--update-focus-window
+        ;; If we're currently focusing another window, enqueue a task to
+        ;; update the focus again after we're done. Otherwise, if we're
+        ;; working on focusing this window, discard the duplicate event.
+        (unless (eq exwm-input--update-focus-window cwin)
+          (exwm-input--update-focus-defer))
+      ;; Debounce focus updates. If we've switched windows since we scheduled
+      ;; the focus commit, wait again until we've stabilized on a window.
+      (if (and cwin window (eq cwin window))
+          (let ((exwm-input--update-focus-window cwin))
+            (exwm-input--update-focus window))
+        (exwm-input--update-focus-defer)))))
 
 (defun exwm-input--update-focus (window)
   "Update input focus."
-  (when (window-live-p window)
+  (when (and (window-live-p window)
+             (not (frame-parameter (window-frame window) 'no-accept-focus)))
     (exwm--log "focus-window=%s focus-buffer=%s" window (window-buffer window))
     (with-current-buffer (window-buffer window)
       (if (derived-mode-p 'exwm-mode)
@@ -1234,8 +1232,6 @@ One use is to access the keymap bound to KEYS (as prefix keys) in `char-mode'."
     (setq exwm-input--echo-area-timer nil))
   (remove-hook 'echo-area-clear-hook #'exwm-input--on-echo-area-clear)
   (remove-hook 'buffer-list-update-hook #'exwm-input--on-buffer-list-update)
-  (when exwm-input--update-focus-defer-timer
-    (cancel-timer exwm-input--update-focus-defer-timer))
   (when exwm-input--update-focus-timer
     (cancel-timer exwm-input--update-focus-timer))
   ;; Make input focus working even without a WM.
