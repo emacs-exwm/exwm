@@ -79,7 +79,6 @@
 (defgroup exwm nil
   "Emacs X Window Manager."
   :tag "EXWM"
-  :version "25.3"
   :group 'applications
   :prefix "exwm-")
 
