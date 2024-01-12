@@ -3,7 +3,7 @@
 ;; Copyright (C) 2015-2024 Free Software Foundation, Inc.
 
 ;; Author: Chris Feng <chris.w.feng@gmail.com>
-;; Maintainer: Adrián Medraño Calvo <adrian@medranocalvo.com>
+;; Maintainer: Adrián Medraño Calvo <adrian@medranocalvo.com>, Steven Allen <steven@stebalien.com>, Daniel Mendler <mail@daniel-mendler.de>
 ;; Version: 0.28
 ;; Package-Requires: ((emacs "26.1") (xelb "0.18"))
 ;; Keywords: unix
