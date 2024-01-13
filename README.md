@@ -7,10 +7,12 @@ It features:
 + Hybrid layout modes (tiling & stacking)
 + Dynamic workspace support
 + ICCCM/EWMH compliance
-+ (Optional) RandR (multi-monitor) support
-+ (Optional) Builtin system tray
-+ (Optional) Builtin input method
-+ (Optional) Background setting support
+Optional features:
++ RandR (multi-monitor) support
++ System tray
++ Input method
++ Background setting support
++ XSETTINGS server
 
 Please check out the
 [screenshots](https://github.com/emacs-exwm/exwm/wiki/Screenshots)

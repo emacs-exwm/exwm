@@ -35,10 +35,12 @@
 ;; + Hybrid layout modes (tiling & stacking)
 ;; + Dynamic workspace support
 ;; + ICCCM/EWMH compliance
-;; + (Optional) RandR (multi-monitor) support
-;; + (Optional) Built-in system tray
-;; + (Optional) Builtin input method
-;; + (Optional) Background setting support
+;; Optional features:
+;; + RandR (multi-monitor) support
+;; + System tray
+;; + Input method
+;; + Background setting support
+;; + XSETTINGS server
 
 ;; Installation & configuration
 ;; ----------------------------
