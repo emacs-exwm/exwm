@@ -33,6 +33,10 @@
 (require 'xcb-ewmh)
 (require 'xcb-debug)
 
+(defgroup exwm-debug nil
+  "Debugging."
+  :group 'exwm)
+
 (defcustom exwm-debug-log-time-function #'exwm-debug-log-uptime
   "Function used for generating timestamps in `exwm-debug' logs.
 
@@ -40,7 +44,6 @@ Here are some predefined candidates:
 `exwm-debug-log-uptime': Display the uptime of this Emacs instance.
 `exwm-debug-log-time': Display time of day.
 `nil': Disable timestamp."
-  :group 'exwm-debug
   :type `(choice (const :tag "Emacs uptime" ,#'exwm-debug-log-uptime)
                  (const :tag "Time of day" ,#'exwm-debug-log-time)
                  (const :tag "Off" nil)
