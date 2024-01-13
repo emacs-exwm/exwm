@@ -2,11 +2,13 @@
 
 EXWM (Emacs X Window Manager) is a full-featured tiling X window manager
 for Emacs built on top of [XELB](https://github.com/emacs-exwm/xelb).
+
 It features:
 + Fully keyboard-driven operations
 + Hybrid layout modes (tiling & stacking)
 + Dynamic workspace support
 + ICCCM/EWMH compliance
+
 Optional features:
 + RandR (multi-monitor) support
 + System tray
