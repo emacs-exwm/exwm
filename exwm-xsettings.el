@@ -40,7 +40,7 @@
 ;;   (exwm-xsettings-enable)
 ;;
 ;; To modify these settings at runtime, customize them with
-;; `custom-set-variables' or `setopt' (Emacs 29+). E.g., the following will
+;; `custom-set-variables' or `setopt' (Emacs 29+).  E.g., the following will
 ;; immediately change the icon theme to "Papirus" at runtime, even in running
 ;; applications:
 ;;
@@ -69,11 +69,14 @@ SYMBOL is the setting being updated and VALUE is the new value."
   (set-default-toplevel-value symbol value)
   (exwm-xsettings--update-settings))
 
+(defgroup exwm-xsettings nil
+  "XSETTINGS."
+  :group 'exwm)
+
 (defcustom exwm-xsettings nil
-  "Custom XSETTINGS.
+  "Alist of custom XSETTINGS.
 These settings take precedence over `exwm-xsettings-theme' and
 `exwm-xsettings-icon-theme'."
-  :group 'exwm
   :type '(alist :key-type (string :tag "Name")
                 :value-type (choice :tag "Value"
                               (string :tag "String")
@@ -101,7 +104,6 @@ These settings take precedence over `exwm-xsettings-theme' and
 
 (defcustom exwm-xsettings-theme nil
   "The system-wide theme."
-  :group 'exwm
   :type '(choice (string :tag "Theme")
                  (cons (string :tag "Light Theme")
                        (string :tag "Dark Theme")))
@@ -110,7 +112,6 @@ These settings take precedence over `exwm-xsettings-theme' and
 
 (defcustom exwm-xsettings-icon-theme nil
   "The system-wide icon theme."
-  :group 'exwm
   :type '(choice (string :tag "Icon Theme")
                  (cons (string :tag "Light Icon Theme")
                        (string :tag "Dark Icon Theme")))
