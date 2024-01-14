@@ -20,7 +20,4 @@ Please check out the
 [screenshots](https://github.com/emacs-exwm/exwm/wiki/Screenshots)
 to get an overview of what EXWM is capable of, and the
 [user guide](https://github.com/emacs-exwm/exwm/wiki)
-for a detailed explanation of its usage.
-
-**Note**: If you install EXWM from source, it's recommended to install
-XELB also from source (otherwise install both from GNU ELPA).
+for installation instructions and a detailed explanation of its usage.
