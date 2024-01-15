@@ -49,14 +49,14 @@
 ;;; Code:
 
 (require 'xcb-ewmh)
-(require 'xcb-icccm)
-
+(require 'xcb-xsettings)
 (require 'exwm-core)
 
 (defvar exwm-xsettings--connection nil)
 (defvar exwm-xsettings--XSETTINGS_SETTINGS-atom nil)
 (defvar exwm-xsettings--XSETTINGS_S0-atom nil)
 (defvar exwm-xsettings--selection-owner-window nil)
+(defvar exwm-xsettings--serial 0)
 
 (defun exwm-xsettings--rgba-match (_widget value)
   "Return t if VALUE is a valid RGBA color."
@@ -117,70 +117,6 @@ These settings take precedence over `exwm-xsettings-theme' and
                        (string :tag "Dark Icon Theme")))
   :initialize #'custom-initialize-default
   :set #'exwm-xsettings--custom-set)
-
-(defvar exwm-xsettings--serial 0)
-
-(defconst xcb:xsettings:-Type:Integer 0)
-(defconst xcb:xsettings:-Type:String 1)
-(defconst xcb:xsettings:-Type:Color 2)
-
-(defclass xcb:xsettings:-Settings
-  (xcb:-struct)
-  ((byte-order :initarg :byte-order :type xcb:CARD8)
-   (pad~0 :initform 3 :type xcb:-pad)
-   (serial :initarg :serial :type xcb:CARD32)
-   (settings-len :initarg :settings-len :type xcb:CARD32)
-   (settings~ :initform
-     '(name settings type xcb:xsettings:-SETTING size
-            (xcb:-fieldref 'settings-len))
-     :type xcb:-list)
-   (settings :initarg :settings :type xcb:-ignore)))
-
-(defclass xcb:xsettings:-SETTING
-  (xcb:-struct)
-  ((type :initarg :type :type xcb:CARD8)
-   (pad~0 :initform 1 :type xcb:-pad)
-   (name-len :initarg :name-len :type xcb:CARD16)
-   (name~ :initform
-     '(name name type xcb:char size
-            (xcb:-fieldref 'name-len))
-     :type xcb:-list)
-   (name :initarg :name :type xcb:-ignore)
-   (pad~1 :initform 4 :type xcb:-pad-align)
-   (last-change-serial :initarg :last-change-serial :type xcb:CARD32)))
-
-(defclass xcb:xsettings:-SETTING_INTEGER
-  (xcb:xsettings:-SETTING)
-  ((type :initform 'xcb:xsettings:-Type:Integer)
-   (value :initarg :value :type xcb:INT32)))
-
-(defclass xcb:xsettings:-SETTING_STRING
-  (xcb:xsettings:-SETTING)
-  ((type :initform 'xcb:xsettings:-Type:String)
-   (value-len :initarg :value-len :type xcb:CARD32)
-   (value~ :initform
-     '(name value type xcb:char size
-            (xcb:-fieldref 'value-len))
-     :type xcb:-list)
-   (value :initarg :value :type xcb:-ignore)
-   (pad~2 :initform 4 :type xcb:-pad-align)))
-
-(defclass xcb:xsettings:-SETTING_COLOR
-  (xcb:xsettings:-SETTING)
-  ((type :initform 'xcb:xsettings:-Type:Color)
-   (red :initarg :red :type xcb:CARD16)
-   (green :initarg :green :type xcb:CARD16)
-   (blue :initarg :blue :type xcb:CARD16)
-   (alpha :initarg :alpha :initform #xffff :type xcb:CARD16)))
-
-(defclass xcb:xsettings:-ClientMessage
-  (xcb:icccm:--ClientMessage xcb:ClientMessage)
-  ((format :initform 32)
-   (type :initform 'xcb:Atom:MANAGER)
-   (time :initarg :time :type xcb:TIMESTAMP)      ;new slot
-   (selection :initarg :selection :type xcb:ATOM) ;new slot
-   (owner :initarg :owner :type xcb:WINDOW))      ;new slot
-  :documentation "An XSETTINGS client message.")
 
 (defalias 'exwm-xsettings--color-dark-p
   (if (eval-when-compile (< emacs-major-version 29))
@@ -316,7 +252,6 @@ SERIAL is a sequence number."
       (setq exwm-xsettings--connection nil)
       (warn "[EXWM] Other XSETTINGS manager detected")
       (cl-return-from exwm-xsettings--init)))
-
 
   (let ((id(xcb:generate-id exwm-xsettings--connection)))
     (setq exwm-xsettings--selection-owner-window id)
