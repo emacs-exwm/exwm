@@ -156,7 +156,8 @@ See variable `exwm-layout-auto-iconify'."
   (with-current-buffer (exwm--id->buffer id)
     (unless (or (exwm-layout--iconic-state-p)
                 (and exwm--floating-frame
-                     (eq 4294967295. exwm--desktop)))
+                     exwm--desktop
+                     (= 4294967295. exwm--desktop)))
       (exwm--log "Hide #x%x" id)
       (when exwm--floating-frame
         (let* ((container (frame-parameter exwm--floating-frame

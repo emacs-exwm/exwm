@@ -176,7 +176,7 @@ Argument XWIN contains the X window of the `exwm-mode' buffer."
       (when reply
         (setq desktop (slot-value reply 'value))
         (cond
-         ((eq desktop 4294967295.)
+         ((and desktop (= desktop 4294967295.))
           (unless (or (not exwm--floating-frame)
                       (eq exwm--frame exwm-workspace--current)
                       (and exwm--desktop
