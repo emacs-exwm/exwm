@@ -247,7 +247,7 @@ This only works when procfs is mounted, which may not be the case on some BSDs."
               (pid (slot-value response 'value))
               (cwd (file-symlink-p (format "/proc/%d/cwd" pid)))
               ((file-accessible-directory-p cwd)))
-        (setq default-directory cwd)
+        (setq default-directory (file-name-as-directory cwd))
       (setq default-directory (expand-file-name "~/")))))
 
 
