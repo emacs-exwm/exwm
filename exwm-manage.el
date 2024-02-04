@@ -234,14 +234,16 @@ Override current hinds if FORCE is non-nil."
                           (elt value 2))) ;MotifWmHints.decorations
               (setq exwm--mwm-hints-decorations nil))))))))
 
-(defun exwm-manage--update-cwd (xwin)
-  "Update the `default-directory' of XWIN.
-Sets the `default-directory' of the EXWM buffer associated with XWIN to match
-its current working directory."
-  (with-current-buffer (exwm--id->buffer xwin)
+(defun exwm-manage--update-default-directory (id)
+  "Update the `default-directory' of X window ID.
+Sets the `default-directory' of the EXWM buffer associated with X window to
+match its current working directory.
+
+This only works when procfs is mounted, which may not be the case on some BSDs."
+  (with-current-buffer (exwm--id->buffer id)
     (if-let* ((response (xcb:+request-unchecked+reply exwm--connection
                             (make-instance 'xcb:ewmh:get-_NET_WM_PID
-                                           :window xwin)))
+                                           :window id)))
               (pid (slot-value response 'value))
               (cwd (file-symlink-p (format "/proc/%d/cwd" pid)))
               ((file-accessible-directory-p cwd)))
@@ -415,7 +417,7 @@ its current working directory."
       (setq exwm-workspace--switch-history-outdated t)
       (exwm--update-desktop id)
       (exwm-manage--update-ewmh-state id)
-      (exwm-manage--update-cwd id)
+      (exwm-manage--update-default-directory id)
       (when (or (plist-get exwm--configurations 'fullscreen)
                 (exwm-layout--fullscreen-p))
         (setq exwm--ewmh-state (delq xcb:Atom:_NET_WM_STATE_FULLSCREEN
