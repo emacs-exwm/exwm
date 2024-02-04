@@ -393,23 +393,19 @@ Override current hinds if FORCE is non-nil."
       (if (plist-get exwm--configurations 'char-mode)
           (exwm-input-release-keyboard id)
         (exwm-input-grab-keyboard id))
-      (let ((simulation-keys (plist-get exwm--configurations 'simulation-keys))
-            (prefix-keys (plist-get exwm--configurations 'prefix-keys)))
-        (with-current-buffer (exwm--id->buffer id)
-          (when simulation-keys
-            (exwm-input-set-local-simulation-keys simulation-keys))
-          (when prefix-keys
-            (setq-local exwm-input-prefix-keys prefix-keys))))
+      (when-let ((simulation-keys (plist-get exwm--configurations 'simulation-keys)))
+        (exwm-input-set-local-simulation-keys simulation-keys))
+      (when-let ((prefix-keys (plist-get exwm--configurations 'prefix-keys)))
+        (setq-local exwm-input-prefix-keys prefix-keys))
       (setq exwm-workspace--switch-history-outdated t)
       (exwm--update-desktop id)
       (exwm-manage--update-ewmh-state id)
-      (with-current-buffer (exwm--id->buffer id)
-        (when (or (plist-get exwm--configurations 'fullscreen)
-                  (exwm-layout--fullscreen-p))
-          (setq exwm--ewmh-state (delq xcb:Atom:_NET_WM_STATE_FULLSCREEN
-                                       exwm--ewmh-state))
-          (exwm-layout-set-fullscreen id))
-        (run-hooks 'exwm-manage-finish-hook)))))
+      (when (or (plist-get exwm--configurations 'fullscreen)
+                (exwm-layout--fullscreen-p))
+        (setq exwm--ewmh-state (delq xcb:Atom:_NET_WM_STATE_FULLSCREEN
+                                     exwm--ewmh-state))
+        (exwm-layout-set-fullscreen id))
+      (run-hooks 'exwm-manage-finish-hook))))
 
 (defun exwm-manage--unmanage-window (id &optional withdraw-only)
   "Unmanage window ID.
