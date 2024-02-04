@@ -234,6 +234,21 @@ Override current hinds if FORCE is non-nil."
                           (elt value 2))) ;MotifWmHints.decorations
               (setq exwm--mwm-hints-decorations nil))))))))
 
+(defun exwm-manage--update-cwd (xwin)
+  "Update the `default-directory' of XWIN.
+Sets the `default-directory' of the EXWM buffer associated with XWIN to match
+its current working directory."
+  (with-current-buffer (exwm--id->buffer xwin)
+    (if-let* ((response (xcb:+request-unchecked+reply exwm--connection
+                            (make-instance 'xcb:ewmh:get-_NET_WM_PID
+                                           :window xwin)))
+              (pid (slot-value response 'value))
+              (cwd (file-symlink-p (format "/proc/%d/cwd" pid)))
+              ((file-accessible-directory-p cwd)))
+        (setq default-directory cwd)
+      (setq default-directory (expand-file-name "~/")))))
+
+
 (defun exwm-manage--set-client-list ()
   "Set _NET_CLIENT_LIST."
   (exwm--log)
@@ -400,6 +415,7 @@ Override current hinds if FORCE is non-nil."
       (setq exwm-workspace--switch-history-outdated t)
       (exwm--update-desktop id)
       (exwm-manage--update-ewmh-state id)
+      (exwm-manage--update-cwd id)
       (when (or (plist-get exwm--configurations 'fullscreen)
                 (exwm-layout--fullscreen-p))
         (setq exwm--ewmh-state (delq xcb:Atom:_NET_WM_STATE_FULLSCREEN
