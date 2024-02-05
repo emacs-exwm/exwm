@@ -135,13 +135,11 @@ defined in `exwm-mode-map' here."
 
 (defvar exwm-input--timestamp-window nil)
 
-(defvar exwm-input--update-focus-defer-timer nil "Timer for polling the lock.")
+(defvar exwm-input--update-focus-timer nil
+  "Timer for deferring the update of input focus.")
 
 (defvar exwm-input--update-focus-lock nil
   "Lock for solving input focus update contention.")
-
-(defvar exwm-input--update-focus-timer nil
-  "Timer for deferring the update of input focus.")
 
 (defvar exwm-input--update-focus-window nil "The (Emacs) window to be focused.
 This value should always be overwritten.")
@@ -302,7 +300,8 @@ ARGS are additional arguments to CALLBACK."
   "Run in `buffer-list-update-hook' to track input focus."
   (when (and          ; this hook is called incesantly; place cheap tests on top
          (not exwm-input--skip-buffer-list-update)
-         (exwm--terminal-p))      ; skip other terminals, e.g. TTY client frames
+         (exwm--terminal-p) ; skip other terminals, e.g. TTY client frames
+         (not (frame-parameter nil 'no-accept-focus)))
     (exwm--log "current-buffer=%S selected-window=%S"
                (current-buffer) (selected-window))
     (redirect-frame-focus (selected-frame) nil)
@@ -310,31 +309,28 @@ ARGS are additional arguments to CALLBACK."
     (exwm-input--update-focus-defer)))
 
 (defun exwm-input--update-focus-defer ()
-  "Defer updating input focus."
-  (when exwm-input--update-focus-defer-timer
-    (cancel-timer exwm-input--update-focus-defer-timer))
-  (if exwm-input--update-focus-lock
-      (setq exwm-input--update-focus-defer-timer
-            (exwm--defer 0 #'exwm-input--update-focus-defer))
-    (setq exwm-input--update-focus-defer-timer nil)
-    (when exwm-input--update-focus-timer
-      (cancel-timer exwm-input--update-focus-timer))
-    (setq exwm-input--update-focus-timer
-          ;; Attempt to accumulate successive events close enough.
-          (run-with-timer exwm-input--update-focus-interval
-                          nil
-                          #'exwm-input--update-focus-commit
-                          exwm-input--update-focus-window))))
+  "Schedule a deferred update to input focus.
+Instead of immediately focusing the current window, it defers the focus change
+until the selected window stops changing (debouncing input focus updates)."
+  (when exwm-input--update-focus-timer
+    (cancel-timer exwm-input--update-focus-timer))
+  (setq exwm-input--update-focus-timer
+        ;; Attempt to accumulate successive events close enough.
+        (run-with-timer exwm-input--update-focus-interval
+                        nil
+                        #'exwm-input--update-focus-commit)))
 
-(defun exwm-input--update-focus-commit (window)
-  "Commit updating input focus."
-  (setq exwm-input--update-focus-lock t)
-  (unwind-protect
-      (exwm-input--update-focus window)
-    (setq exwm-input--update-focus-lock nil)))
+(defun exwm-input--update-focus-commit ()
+  "Attempt to update the window focus.
+If we're currently updating the window focus, re-schedule a focus update
+attempt later."
+  (if exwm-input--update-focus-lock
+      (exwm-input--update-focus-defer)
+    (let ((exwm-input--update-focus-lock t))
+      (exwm-input--update-focus exwm-input--update-focus-window))))
 
 (defun exwm-input--update-focus (window)
-  "Update input focus."
+  "Update input focus to WINDOW."
   (when (window-live-p window)
     (exwm--log "focus-window=%s focus-buffer=%s" window (window-buffer window))
     (with-current-buffer (window-buffer window)
@@ -1234,8 +1230,6 @@ One use is to access the keymap bound to KEYS (as prefix keys) in `char-mode'."
     (setq exwm-input--echo-area-timer nil))
   (remove-hook 'echo-area-clear-hook #'exwm-input--on-echo-area-clear)
   (remove-hook 'buffer-list-update-hook #'exwm-input--on-buffer-list-update)
-  (when exwm-input--update-focus-defer-timer
-    (cancel-timer exwm-input--update-focus-defer-timer))
   (when exwm-input--update-focus-timer
     (cancel-timer exwm-input--update-focus-timer))
   ;; Make input focus working even without a WM.
