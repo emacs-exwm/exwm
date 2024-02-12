@@ -46,15 +46,6 @@
    (visible :initarg :visible))
   :documentation "Attributes of a system tray icon.")
 
-(defclass xcb:systemtray:-ClientMessage
-  (xcb:icccm:--ClientMessage xcb:ClientMessage)
-  ((format :initform 32)
-   (type :initform 'xcb:Atom:MANAGER)
-   (time :initarg :time :type xcb:TIMESTAMP)      ;new slot
-   (selection :initarg :selection :type xcb:ATOM) ;new slot
-   (owner :initarg :owner :type xcb:WINDOW))      ;new slot
-  :documentation "A systemtray client message.")
-
 (defgroup exwm-systemtray nil
   "System tray."
   :group 'exwm)
@@ -542,7 +533,7 @@ Argument DATA contains the raw event data."
                        :destination exwm--root
                        :event-mask xcb:EventMask:StructureNotify
                        :event (xcb:marshal
-                               (make-instance 'xcb:systemtray:-ClientMessage
+                               (make-instance 'xcb:icccm:-ManagerSelection
                                               :window exwm--root
                                               :time xcb:Time:CurrentTime
                                               :selection

@@ -293,7 +293,7 @@ SERIAL is a sequence number."
                        :destination exwm--root
                        :event-mask xcb:EventMask:StructureNotify
                        :event (xcb:marshal
-                               (make-instance 'xcb:xsettings:-ClientMessage
+                               (make-instance 'xcb:icccm:-ManagerSelection
                                               :window exwm--root
                                               :time xcb:Time:CurrentTime
                                               :selection exwm-xsettings--XSETTINGS_S0-atom
