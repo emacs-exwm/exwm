@@ -602,9 +602,7 @@ See also `exwm-layout-enlarge-window'."
   ;; Auto refresh layout
   (exwm--log)
   (add-hook 'window-configuration-change-hook #'exwm-layout--refresh)
-  ;; The behavior of `window-configuration-change-hook' will be changed.
-  (when (fboundp 'window-pixel-width-before-size-change)
-    (add-hook 'window-size-change-functions #'exwm-layout--refresh))
+  (add-hook 'window-size-change-functions #'exwm-layout--refresh)
   (unless (exwm-workspace--minibuffer-own-frame-p)
     ;; Refresh when minibuffer grows
     (add-hook 'minibuffer-setup-hook #'exwm-layout--on-minibuffer-setup t)
@@ -616,8 +614,7 @@ See also `exwm-layout-enlarge-window'."
   "Exit the layout module."
   (exwm--log)
   (remove-hook 'window-configuration-change-hook #'exwm-layout--refresh)
-  (when (fboundp 'window-pixel-width-before-size-change)
-    (remove-hook 'window-size-change-functions #'exwm-layout--refresh))
+  (remove-hook 'window-size-change-functions #'exwm-layout--refresh)
   (remove-hook 'minibuffer-setup-hook #'exwm-layout--on-minibuffer-setup)
   (when exwm-layout--timer
     (cancel-timer exwm-layout--timer)
