@@ -1257,12 +1257,10 @@ ALIST is an action alist, as accepted by function `display-buffer'."
   ;;        fail to retrieve the correct window.  It's likely there are
   ;;        other related issues.
   ;; This is not required by Emacs 24.
-  (when (fboundp 'window-preserve-size)
-    (let ((window (get-buffer-window "*Completions*"
-                                     exwm-workspace--current)))
-      (when window
-        (fit-window-to-buffer window)
-        (window-preserve-size window)))))
+  (let ((window (get-buffer-window "*Completions*" exwm-workspace--current)))
+    (when window
+      (fit-window-to-buffer window)
+      (window-preserve-size window))))
 
 (defun exwm-workspace--on-minibuffer-exit ()
   "Run in `minibuffer-exit-hook' to hide the minibuffer container."
