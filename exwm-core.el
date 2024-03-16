@@ -95,6 +95,8 @@ Here are some predefined candidates:
 (declare-function exwm-manage--kill-buffer-query-function "exwm-manage.el")
 (declare-function exwm-workspace-move-window "exwm-workspace.el"
                   (frame-or-index &optional id))
+(declare-function exwm-workspace-switch "exwm-workspace.el"
+                  (frame-or-index &optional force))
 
 (define-minor-mode exwm-debug
   "Debug-logging enabled if non-nil."
@@ -351,13 +353,11 @@ One of `line-mode' or `char-mode'.")
            (lambda (key value)
              (when (sequencep key)
                (setq result (append result
-                                    `([
-                                       ,(format "Send '%s'"
+                                    `([,(format "Send '%s'"
                                                 (key-description value))
-                                       (lambda ()
-                                         (interactive)
-                                         (dolist (i ',value)
-                                           (exwm-input--fake-key i)))
+                                       ,(lambda ()
+                                          (interactive)
+                                          (mapc #'exwm-input--fake-key value))
                                        :keys ,(key-description key)])))))
            exwm-input--simulation-keys)
           result)))
@@ -380,9 +380,9 @@ One of `line-mode' or `char-mode'.")
      ,(lambda (&rest _args)
         (mapcar (lambda (i)
                   `[,(format "Workspace %d" i)
-                    (lambda ()
-                      (interactive)
-                      (exwm-workspace-switch ,i))
+                    ,(lambda ()
+                       (interactive)
+                       (exwm-workspace-switch i))
                     (/= ,i exwm-workspace-current-index)])
                 (number-sequence 0 (1- (length exwm-workspace--list))))))))
 

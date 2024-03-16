@@ -67,11 +67,11 @@ This hook runs in the context of the corresponding buffer."
 
 (defcustom exwm-floating-border-width 1
   "Border width of floating windows."
-  :type '(integer
-          :validate (lambda (widget)
-                      (when (< (widget-value widget) 0)
-                        (widget-put widget :error "Border width is at least 0")
-                        widget)))
+  :type `(integer
+          :validate ,(lambda (widget)
+                       (when (< (widget-value widget) 0)
+                         (widget-put widget :error "Border width is at least 0")
+                         widget)))
   :initialize #'custom-initialize-default
   :set (lambda (symbol value)
          (let ((delta (- value exwm-floating-border-width))
