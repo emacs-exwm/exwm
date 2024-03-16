@@ -320,7 +320,7 @@ One of `line-mode' or `char-mode'.")
 ;; Also, inactive entries should be disabled rather than hidden.
 (easy-menu-define exwm-mode-menu exwm-mode-map
   "Menu for `exwm-mode'."
-  '("EXWM"
+  `("EXWM"
     "---"
     "*General*"
     "---"
@@ -345,22 +345,22 @@ One of `line-mode' or `char-mode'.")
     ["Send key" exwm-input-send-next-key (eq exwm--input-mode 'line-mode)]
     ;; This is merely a reference.
     ("Send simulation key" :filter
-     (lambda (&rest _args)
-       (let (result)
-         (maphash
-          (lambda (key value)
-            (when (sequencep key)
-              (setq result (append result
-                                   `([
-                                      ,(format "Send '%s'"
-                                               (key-description value))
-                                      (lambda ()
-                                        (interactive)
-                                        (dolist (i ',value)
-                                          (exwm-input--fake-key i)))
-                                      :keys ,(key-description key)])))))
-          exwm-input--simulation-keys)
-         result)))
+     ,(lambda (&rest _args)
+        (let (result)
+          (maphash
+           (lambda (key value)
+             (when (sequencep key)
+               (setq result (append result
+                                    `([
+                                       ,(format "Send '%s'"
+                                                (key-description value))
+                                       (lambda ()
+                                         (interactive)
+                                         (dolist (i ',value)
+                                           (exwm-input--fake-key i)))
+                                       :keys ,(key-description key)])))))
+           exwm-input--simulation-keys)
+          result)))
 
     ["Define global binding" exwm-input-set-key]
 
@@ -377,14 +377,14 @@ One of `line-mode' or `char-mode'.")
     ["Switch workspace" exwm-workspace-switch]
     ;; Place this entry at bottom to avoid selecting others by accident.
     ("Switch to" :filter
-     (lambda (&rest _args)
-       (mapcar (lambda (i)
-                 `[,(format "Workspace %d" i)
-                   (lambda ()
-                     (interactive)
-                     (exwm-workspace-switch ,i))
-                   (/= ,i exwm-workspace-current-index)])
-               (number-sequence 0 (1- (exwm-workspace--count))))))))
+     ,(lambda (&rest _args)
+        (mapcar (lambda (i)
+                  `[,(format "Workspace %d" i)
+                    (lambda ()
+                      (interactive)
+                      (exwm-workspace-switch ,i))
+                    (/= ,i exwm-workspace-current-index)])
+                (number-sequence 0 (1- (length exwm-workspace--list))))))))
 
 (define-derived-mode exwm-mode nil "EXWM"
   "Major mode for managing X windows.
