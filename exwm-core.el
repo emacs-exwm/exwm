@@ -381,7 +381,7 @@ One of `line-mode' or `char-mode'.")
   "Major mode for managing X windows.
 
 \\{exwm-mode-map}"
-  ;;
+  :interactive nil :abbrev-table nil :syntax-table nil
   (setq mode-name
         '(:eval (propertize "EXWM" 'face
                             (when (cl-some (lambda (i)
