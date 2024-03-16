@@ -82,6 +82,7 @@ Here are some predefined candidates:
 (defvar exwm-input--simulation-keys)
 (defvar exwm-input-line-mode-passthrough)
 (defvar exwm-input-prefix-keys)
+(defvar exwm-workspace--list)
 (declare-function exwm-input--fake-key "exwm-input.el" (event))
 (declare-function exwm-input--on-KeyPress-line-mode "exwm-input.el"
                   (key-press raw-data))
@@ -228,6 +229,14 @@ If CONN is non-nil, use it instead of the value of the variable
             (make-instance 'xcb:GetGeometry :drawable id))
       (setq ret-depth depth))
     (list ret-visual ret-depth ret-colormap)))
+
+(defun exwm--mode-name ()
+  "Mode name string used in `exwm-mode' buffers."
+  (let ((name "EXWM"))
+    (if (cl-some (lambda (i) (frame-parameter i 'exwm-urgency))
+                 exwm-workspace--list)
+        (propertize name 'face 'font-lock-warning-face)
+      name)))
 
 ;; Internal variables
 (defvar-local exwm--id nil)               ;window ID
@@ -382,12 +391,6 @@ One of `line-mode' or `char-mode'.")
 
 \\{exwm-mode-map}"
   :interactive nil :abbrev-table nil :syntax-table nil
-  (setq mode-name
-        '(:eval (propertize "EXWM" 'face
-                            (when (cl-some (lambda (i)
-                                             (frame-parameter i 'exwm-urgency))
-                                           exwm-workspace--list)
-                              'font-lock-warning-face))))
   ;; Change major-mode is not allowed
   (add-hook 'change-major-mode-hook #'kill-buffer nil t)
   ;; Kill buffer -> close window
@@ -396,7 +399,8 @@ One of `line-mode' or `char-mode'.")
   ;; Redirect events when executing keyboard macros.
   (push `(executing-kbd-macro . ,exwm--kmacro-map)
         minor-mode-overriding-map-alist)
-  (setq buffer-read-only t
+  (setq mode-name '(:eval (exwm--mode-name))
+        buffer-read-only t
         cursor-type nil
         left-margin-width nil
         right-margin-width nil
