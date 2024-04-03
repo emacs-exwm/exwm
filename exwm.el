@@ -493,23 +493,20 @@ RAW-DATA contains unmarshalled ClientMessage event data."
      ;; _NET_ACTIVE_WINDOW.
      ((= type xcb:Atom:_NET_ACTIVE_WINDOW)
       (let ((buffer (exwm--id->buffer id))
-            iconic window)
+            window)
         (if (buffer-live-p buffer)
           ;; Either an `exwm-mode' buffer (an X window) or a floating frame.
           (with-current-buffer buffer
             (when (eq exwm--frame exwm-workspace--current)
               (if exwm--floating-frame
                   (select-frame exwm--floating-frame)
-                (setq iconic (exwm-layout--iconic-state-p))
-                (when iconic
-                  ;; State change: iconic => normal.
-                  (set-window-buffer (frame-selected-window exwm--frame)
-                                     (current-buffer)))
-                ;; Focus transfer.
                 (setq window (get-buffer-window nil t))
-                (when (or iconic
-                          (not (eq window (selected-window))))
-                  (select-window window)))))
+                (unless window
+                  ;; State change: iconic => normal.
+                  (setq window (frame-selected-window exwm--frame))
+                  (set-window-buffer window (current-buffer)))
+                ;; Focus transfer.
+                (select-window window))))
           ;; A workspace.
           (dolist (f exwm-workspace--list)
             (when (eq id (frame-parameter f 'exwm-outer-id))
