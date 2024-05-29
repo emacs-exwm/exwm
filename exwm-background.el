@@ -43,7 +43,7 @@
   :initialize #'custom-initialize-default
   :set (lambda (symbol value)
          (set-default-toplevel-value symbol value)
-         (exwm-background--update)))
+         (when (bound-and-true-p exwm-background-mode) (exwm-background--update))))
 
 (defconst exwm-background--properties '("_XROOTPMAP_ID" "_XSETROOT_ID" "ESETROOT_PMAP_ID")
   "The background properties to set.
@@ -188,11 +188,16 @@ may kill this connection when they replace it.")
         exwm-background--connection nil
         exwm-background--atoms nil))
 
+;;;###autoload(autoload 'exwm-background-mode "exwm-background" nil t)
+(exwm--define-global-minor-mode background
+  "Global minor mode for toggling EXWM background support.")
+
 (defun exwm-background-enable ()
   "Enable background support for EXWM."
-  (exwm--log)
-  (add-hook 'exwm-init-hook #'exwm-background--init)
-  (add-hook 'exwm-exit-hook #'exwm-background--exit))
+  (add-hook 'exwm-init-hook #'exwm-background-mode)
+  (add-hook 'exwm-exit-hook (apply-partially #'exwm-background-mode -1))
+  (when exwm--connection (exwm-background-mode)))
+(make-obsolete #'exwm-background-enable "Use `exwm-background-mode' instead." "0.40")
 
 (provide 'exwm-background)
 

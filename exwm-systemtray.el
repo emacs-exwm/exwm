@@ -87,7 +87,8 @@ TrueColor-24\" can be used to force Emacs to use 24-bit depth."
 using 32-bit depth.  Using `workspace-background' instead.")
            (setq value 'workspace-background))
          (set-default symbol value)
-         (when (and exwm-systemtray--connection
+         (when (and (bound-and-true-p exwm-systemtray-mode)
+                    exwm-systemtray--connection
                     exwm-systemtray--embedder-window)
            ;; Change the background color for embedder.
            (exwm-systemtray--set-background-color)
@@ -679,11 +680,16 @@ Argument DATA contains the raw event data."
     (when (boundp 'exwm-randr-refresh-hook)
       (remove-hook 'exwm-randr-refresh-hook #'exwm-systemtray--refresh-all))))
 
+;;;###autoload(autoload 'exwm-systemtray-mode "exwm-systemtray" nil t)
+(exwm--define-global-minor-mode systemtray
+  "Global minor mode for toggling EXWM systemtray.")
+
 (defun exwm-systemtray-enable ()
   "Enable system tray support for EXWM."
-  (exwm--log)
-  (add-hook 'exwm-init-hook #'exwm-systemtray--init)
-  (add-hook 'exwm-exit-hook #'exwm-systemtray--exit))
+  (add-hook 'exwm-init-hook #'exwm-systemtray-mode)
+  (add-hook 'exwm-exit-hook (apply-partially #'exwm-systemtray-mode -1))
+  (when exwm--connection (exwm-systemtray-mode)))
+(make-obsolete #'exwm-systemtray-enable "Use `exwm-systemtray-mode' instead." "0.40")
 
 
 

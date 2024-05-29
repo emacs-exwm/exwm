@@ -67,7 +67,8 @@
 
 SYMBOL is the setting being updated and VALUE is the new value."
   (set-default-toplevel-value symbol value)
-  (exwm-xsettings--update-settings))
+  (when (bound-and-true-p exwm-xsettings-mode)
+    (exwm-xsettings--update-settings)))
 
 (defgroup exwm-xsettings nil
   "XSETTINGS."
@@ -325,11 +326,16 @@ SERIAL is a sequence number."
           exwm-xsettings--XSETTINGS_S0-atom nil
           exwm-xsettings--selection-owner-window nil)))
 
+;;;###autoload(autoload 'exwm-xsettings-mode "exwm-xsettings" nil t)
+(exwm--define-global-minor-mode xsettings
+  "Global minor mode for toggling EXWM Xsettings support.")
+
 (defun exwm-xsettings-enable ()
   "Enable xsettings support for EXWM."
-  (exwm--log)
-  (add-hook 'exwm-init-hook #'exwm-xsettings--init)
-  (add-hook 'exwm-exit-hook #'exwm-xsettings--exit))
+  (add-hook 'exwm-init-hook #'exwm-xsettings-mode)
+  (add-hook 'exwm-exit-hook (apply-partially #'exwm-xsettings-mode -1))
+  (when exwm--connection (exwm-xsettings-mode)))
+(make-obsolete #'exwm-xsettings-enable "Use `exwm-xsettings-mode' instead." "0.40")
 
 (provide 'exwm-xsettings)
 
