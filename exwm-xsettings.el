@@ -58,6 +58,19 @@
 (defvar exwm-xsettings--selection-owner-window nil)
 (defvar exwm-xsettings--serial 0)
 
+;;;###autoload
+(define-minor-mode exwm-xsettings-mode
+  "Toggle EXWM xsettings support."
+  :global t
+  :group 'exwm
+  (exwm--global-minor-mode-body xsettings))
+
+;;;###autoload
+(defun exwm-xsettings-enable ()
+  "Enable EXWM xsettings support."
+  (exwm-xsettings-mode 1))
+(make-obsolete #'exwm-xsettings-enable "Use `exwm-xsettings-mode' instead." "0.40")
+
 (defun exwm-xsettings--rgba-match (_widget value)
   "Return t if VALUE is a valid RGBA color."
   (and (numberp value) (<= 0 value 1)))
@@ -67,7 +80,7 @@
 
 SYMBOL is the setting being updated and VALUE is the new value."
   (set-default-toplevel-value symbol value)
-  (exwm-xsettings--update-settings))
+  (when exwm-xsettings-mode (exwm-xsettings--update-settings)))
 
 (defgroup exwm-xsettings nil
   "XSETTINGS."
@@ -324,12 +337,6 @@ SERIAL is a sequence number."
           exwm-xsettings--XSETTINGS_SETTINGS-atom nil
           exwm-xsettings--XSETTINGS_S0-atom nil
           exwm-xsettings--selection-owner-window nil)))
-
-(defun exwm-xsettings-enable ()
-  "Enable xsettings support for EXWM."
-  (exwm--log)
-  (add-hook 'exwm-init-hook #'exwm-xsettings--init)
-  (add-hook 'exwm-exit-hook #'exwm-xsettings--exit))
 
 (provide 'exwm-xsettings)
 

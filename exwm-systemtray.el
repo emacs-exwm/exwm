@@ -50,6 +50,19 @@
   "System tray."
   :group 'exwm)
 
+;;;###autoload
+(define-minor-mode exwm-systemtray-mode
+  "Toggle EXWM systemtray support."
+  :global t
+  :group 'exwm
+  (exwm--global-minor-mode-body systemtray))
+
+;;;###autoload
+(defun exwm-systemtray-enable ()
+  "Enable EXWM systemtray support."
+  (exwm-systemtray-mode 1))
+(make-obsolete #'exwm-systemtray-enable "Use `exwm-systemtray-mode' instead." "0.40")
+
 (defcustom exwm-systemtray-height nil
   "System tray height.
 
@@ -87,7 +100,8 @@ TrueColor-24\" can be used to force Emacs to use 24-bit depth."
 using 32-bit depth.  Using `workspace-background' instead.")
            (setq value 'workspace-background))
          (set-default symbol value)
-         (when (and exwm-systemtray--connection
+         (when (and exwm-systemtray-mode
+                    exwm-systemtray--connection
                     exwm-systemtray--embedder-window)
            ;; Change the background color for embedder.
            (exwm-systemtray--set-background-color)
@@ -678,12 +692,6 @@ Argument DATA contains the raw event data."
     (remove-hook 'tool-bar-mode-hook #'exwm-systemtray--refresh-all)
     (when (boundp 'exwm-randr-refresh-hook)
       (remove-hook 'exwm-randr-refresh-hook #'exwm-systemtray--refresh-all))))
-
-(defun exwm-systemtray-enable ()
-  "Enable system tray support for EXWM."
-  (exwm--log)
-  (add-hook 'exwm-init-hook #'exwm-systemtray--init)
-  (add-hook 'exwm-exit-hook #'exwm-systemtray--exit))
 
 
 

@@ -797,11 +797,18 @@ Such event would be received when the client window is destroyed."
   (xcb:disconnect exwm-xim--conn)
   (setq exwm-xim--conn nil))
 
+;;;###autoload
+(define-minor-mode exwm-xim-mode
+  "Toggle EXWM XIM support."
+  :global t
+  :group 'exwm
+  (exwm--global-minor-mode-body xim))
+
+;;;###autoload
 (defun exwm-xim-enable ()
-  "Enable XIM support for EXWM."
-  (exwm--log)
-  (add-hook 'exwm-init-hook #'exwm-xim--init)
-  (add-hook 'exwm-exit-hook #'exwm-xim--exit))
+  "Enable EXWM XIM support."
+  (exwm-xim-mode 1))
+(make-obsolete #'exwm-xim-enable "Use `exwm-xim-mode' instead." "0.40")
 
 
 
