@@ -306,9 +306,11 @@ Refresh when any RandR 1.5 monitor changes."
       (when (eq window exwm--root)
         (exwm-randr-refresh)))))
 
+(defvar exwm-randr--initialized nil)
 (defun exwm-randr--init ()
   "Initialize RandR extension and EXWM RandR module."
   (exwm--log)
+  (when exwm-randr--initialized (cl-return)) ; Ensrure minor-mode idempotency.
   (when (= 0 (slot-value (xcb:get-extension-data exwm--connection 'xcb:randr)
                          'present))
     (error "[EXWM] RandR extension is not supported by the server"))
@@ -348,7 +350,8 @@ Refresh when any RandR 1.5 monitor changes."
   ;; saved/restored.
   (dolist (i '(exwm-randr-monitor))
     (unless (assq i frameset-filter-alist)
-      (push (cons i :never) frameset-filter-alist))))
+      (push (cons i :never) frameset-filter-alist)))
+  (setq exwm-randr--initialized t))
 
 (defun exwm-randr--exit ()
   "Exit the RandR module."
