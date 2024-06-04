@@ -362,7 +362,6 @@ Refresh when any RandR 1.5 monitor changes."
   :group 'exwm
   (exwm--global-minor-mode-body randr))
 
-;;;###autoload
 (defun exwm-randr-enable ()
   "Enable EXWM RandR support."
   (exwm-randr-mode 1))

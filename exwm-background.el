@@ -41,7 +41,6 @@
   :group 'exwm
   (exwm--global-minor-mode-body background))
 
-;;;###autoload
 (defun exwm-background-enable ()
   "Enable EXWM background support."
   (exwm-background-mode 1))

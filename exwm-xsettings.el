@@ -64,7 +64,6 @@
   :group 'exwm
   (exwm--global-minor-mode-body xsettings))
 
-;;;###autoload
 (defun exwm-xsettings-enable ()
   "Enable EXWM xsettings support."
   (exwm-xsettings-mode 1))

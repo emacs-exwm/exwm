@@ -57,7 +57,6 @@
   :group 'exwm
   (exwm--global-minor-mode-body systemtray))
 
-;;;###autoload
 (defun exwm-systemtray-enable ()
   "Enable EXWM systemtray support."
   (exwm-systemtray-mode 1))

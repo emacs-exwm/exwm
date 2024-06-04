@@ -803,7 +803,6 @@ Such event would be received when the client window is destroyed."
   :group 'exwm
   (exwm--global-minor-mode-body xim))
 
-;;;###autoload
 (defun exwm-xim-enable ()
   "Enable EXWM XIM support."
   (exwm-xim-mode 1))
