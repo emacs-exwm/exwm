@@ -51,6 +51,10 @@
 (require 'xcb-xsettings)
 (require 'exwm-core)
 
+(defgroup exwm-xsettings nil
+  "XSETTINGS."
+  :group 'exwm)
+
 (defvar exwm-xsettings--connection nil)
 (defvar exwm-xsettings--XSETTINGS_SETTINGS-atom nil)
 (defvar exwm-xsettings--XSETTINGS_S0-atom nil)
@@ -61,7 +65,7 @@
 (define-minor-mode exwm-xsettings-mode
   "Toggle EXWM xsettings support."
   :global t
-  :group 'exwm
+  :group 'exwm-xsettings
   (exwm--global-minor-mode-body xsettings))
 
 (defun exwm-xsettings-enable ()
@@ -79,10 +83,6 @@
 SYMBOL is the setting being updated and VALUE is the new value."
   (set-default-toplevel-value symbol value)
   (when exwm-xsettings-mode (exwm-xsettings--update-settings)))
-
-(defgroup exwm-xsettings nil
-  "XSETTINGS."
-  :group 'exwm)
 
 (defcustom exwm-xsettings nil
   "Alist of custom XSETTINGS.

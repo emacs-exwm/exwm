@@ -54,7 +54,7 @@
 (define-minor-mode exwm-systemtray-mode
   "Toggle EXWM systemtray support."
   :global t
-  :group 'exwm
+  :group 'exwm-systemtray
   (exwm--global-minor-mode-body systemtray))
 
 (defun exwm-systemtray-enable ()

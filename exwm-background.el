@@ -34,11 +34,15 @@
 
 (require 'exwm-core)
 
+(defgroup exwm-background nil
+  "Background support."
+  :group 'exwm)
+
 ;;;###autoload
 (define-minor-mode exwm-background-mode
   "Toggle EXWM background support."
   :global t
-  :group 'exwm
+  :group 'exwm-background
   (exwm--global-minor-mode-body background))
 
 (defun exwm-background-enable ()
@@ -51,7 +55,6 @@
   :type '(choice
           (color :tag "Background Color")
           (const :tag "Default" nil))
-  :group 'exwm
   :initialize #'custom-initialize-default
   :set (lambda (symbol value)
          (set-default-toplevel-value symbol value)
