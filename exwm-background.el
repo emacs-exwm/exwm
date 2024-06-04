@@ -34,6 +34,8 @@
 
 (require 'exwm-core)
 
+(defvar exwm-background-mode)
+
 (defcustom exwm-background-color nil
   "Background color for Xorg."
   :type '(choice
@@ -43,7 +45,7 @@
   :initialize #'custom-initialize-default
   :set (lambda (symbol value)
          (set-default-toplevel-value symbol value)
-         (when (bound-and-true-p exwm-background-mode) (exwm-background--update))))
+         (when exwm-background-mode (exwm-background--update))))
 
 (defconst exwm-background--properties '("_XROOTPMAP_ID" "_XSETROOT_ID" "ESETROOT_PMAP_ID")
   "The background properties to set.

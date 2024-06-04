@@ -40,6 +40,8 @@
 
 (declare-function exwm-workspace--workarea "exwm-workspace.el" (frame))
 
+(defvar exwm-systemtray-mode)
+
 (defclass exwm-systemtray--icon ()
   ((width :initarg :width)
    (height :initarg :height)
@@ -87,7 +89,7 @@ TrueColor-24\" can be used to force Emacs to use 24-bit depth."
 using 32-bit depth.  Using `workspace-background' instead.")
            (setq value 'workspace-background))
          (set-default symbol value)
-         (when (and (bound-and-true-p exwm-systemtray-mode)
+         (when (and exwm-systemtray-mode
                     exwm-systemtray--connection
                     exwm-systemtray--embedder-window)
            ;; Change the background color for embedder.

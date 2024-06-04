@@ -57,6 +57,7 @@
 (defvar exwm-xsettings--XSETTINGS_S0-atom nil)
 (defvar exwm-xsettings--selection-owner-window nil)
 (defvar exwm-xsettings--serial 0)
+(defvar exwm-xsettings-mode)
 
 (defun exwm-xsettings--rgba-match (_widget value)
   "Return t if VALUE is a valid RGBA color."
@@ -67,7 +68,7 @@
 
 SYMBOL is the setting being updated and VALUE is the new value."
   (set-default-toplevel-value symbol value)
-  (when (bound-and-true-p exwm-xsettings-mode)
+  (when exwm-xsettings-mode
     (exwm-xsettings--update-settings)))
 
 (defgroup exwm-xsettings nil
