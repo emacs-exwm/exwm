@@ -48,7 +48,7 @@
 (defun exwm-background-enable ()
   "Enable EXWM background support."
   (exwm-background-mode 1))
-(make-obsolete #'exwm-background-enable "Use `exwm-background-mode' instead." "0.40")
+(make-obsolete 'exwm-background-enable "Use `exwm-background-mode' instead." "0.30")
 
 (defcustom exwm-background-color nil
   "Background color for Xorg."

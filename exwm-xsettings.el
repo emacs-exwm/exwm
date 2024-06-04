@@ -71,7 +71,7 @@
 (defun exwm-xsettings-enable ()
   "Enable EXWM xsettings support."
   (exwm-xsettings-mode 1))
-(make-obsolete #'exwm-xsettings-enable "Use `exwm-xsettings-mode' instead." "0.40")
+(make-obsolete 'exwm-xsettings-enable "Use `exwm-xsettings-mode' instead." "0.30")
 
 (defun exwm-xsettings--rgba-match (_widget value)
   "Return t if VALUE is a valid RGBA color."

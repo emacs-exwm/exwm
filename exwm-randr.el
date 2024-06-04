@@ -365,7 +365,7 @@ Refresh when any RandR 1.5 monitor changes."
 (defun exwm-randr-enable ()
   "Enable EXWM RandR support."
   (exwm-randr-mode 1))
-(make-obsolete #'exwm-randr-enable "Use `exwm-randr-mode' instead." "0.40")
+(make-obsolete 'exwm-randr-enable "Use `exwm-randr-mode' instead." "0.30")
 
 
 
