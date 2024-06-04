@@ -26,7 +26,6 @@
 ;;
 ;; This package can be configured as follows:
 ;;
-;;   (require 'exwm-xsettings)
 ;;   (setq exwm-xsettings-theme '("Adwaita" . "Adwaita-dark") ;; light/dark
 ;;         exwm-xsettings `(("Xft/HintStyle" . "hintslight")
 ;;                          ("Xft/RGBA" . "rgb")
@@ -37,7 +36,7 @@
 ;;                          ;; (144 = 1.5 * 96).
 ;;                          ("Xft/DPI" . ,(* 144 1024))
 ;;                          ("Xft/Hinting" . 1)))
-;;   (exwm-xsettings-enable)
+;;   (exwm-xsettings-mode 1)
 ;;
 ;; To modify these settings at runtime, customize them with
 ;; `custom-set-variables' or `setopt' (Emacs 29+).  E.g., the following will

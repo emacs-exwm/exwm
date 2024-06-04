@@ -30,13 +30,12 @@
 ;; `exwm-randr-workspace-monitor-plist' and `exwm-randr-screen-change-hook'
 ;; as follows:
 ;;
-;;   (require 'exwm-randr)
 ;;   (setq exwm-randr-workspace-monitor-plist '(0 "VGA1"))
 ;;   (add-hook 'exwm-randr-screen-change-hook
 ;;             (lambda ()
 ;;               (start-process-shell-command
 ;;                "xrandr" nil "xrandr --output VGA1 --left-of LVDS1 --auto")))
-;;   (exwm-randr-enable)
+;;   (exwm-randr-mode 1)
 ;;
 ;; With above lines, workspace 0 should be assigned to the output named "VGA1",
 ;; staying at the left of other workspaces on the output "LVDS1".  Please refer

@@ -23,9 +23,9 @@
 
 ;; This module adds X background color setting support to EXWM.
 
-;; To use this module, load and enable it as follows:
-;;   (require 'exwm-background)
-;;   (exwm-background-enable)
+;; To use this module, enable it as follows:
+;;
+;;   (exwm-background-mode 1)
 ;;
 ;; By default, this will apply the theme's background color.  However, that
 ;; color can be customized via the `exwm-background-color' setting.

@@ -24,9 +24,9 @@
 
 ;; This module adds system tray support for EXWM.
 
-;; To use this module, load and enable it as follows:
-;;   (require 'exwm-systemtray)
-;;   (exwm-systemtray-enable)
+;; To use this module, enable it as follows:
+;;
+;;   (exwm-systemtray-mode 1)
 
 ;;; Code:
 

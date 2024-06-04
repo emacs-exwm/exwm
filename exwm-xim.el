@@ -41,10 +41,9 @@
 ;; + Only support static event flow, on-demand-synchronous method.
 ;; + Only "root-window" input style is supported.
 
-;; To use this module, first load and enable it as follows:
+;; To use this module, enable it as follows:
 ;;
-;;    (require 'exwm-xim)
-;;    (exwm-xim-enable)
+;;    (exwm-xim-mode 1)
 ;;
 ;; A keybinding for `toggle-input-method' is probably required to turn on &
 ;; off an input method (default to `default-input-method').  It's bound to
