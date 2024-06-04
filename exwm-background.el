@@ -34,6 +34,19 @@
 
 (require 'exwm-core)
 
+;;;###autoload
+(define-minor-mode exwm-background-mode
+  "Toggle EXWM background support."
+  :global t
+  :group 'exwm
+  (exwm--global-minor-mode-body background))
+
+;;;###autoload
+(defun exwm-background-enable ()
+  "Enable EXWM background support."
+  (exwm-background-mode 1))
+(make-obsolete #'exwm-background-enable "Use `exwm-background-mode' instead." "0.40")
+
 (defcustom exwm-background-color nil
   "Background color for Xorg."
   :type '(choice
@@ -43,7 +56,7 @@
   :initialize #'custom-initialize-default
   :set (lambda (symbol value)
          (set-default-toplevel-value symbol value)
-         (exwm-background--update)))
+         (when exwm-background-mode (exwm-background--update))))
 
 (defconst exwm-background--properties '("_XROOTPMAP_ID" "_XSETROOT_ID" "ESETROOT_PMAP_ID")
   "The background properties to set.
@@ -187,12 +200,6 @@ may kill this connection when they replace it.")
   (setq exwm-background--pixmap nil
         exwm-background--connection nil
         exwm-background--atoms nil))
-
-(defun exwm-background-enable ()
-  "Enable background support for EXWM."
-  (exwm--log)
-  (add-hook 'exwm-init-hook #'exwm-background--init)
-  (add-hook 'exwm-exit-hook #'exwm-background--exit))
 
 (provide 'exwm-background)
 

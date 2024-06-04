@@ -356,11 +356,18 @@ Refresh when any RandR 1.5 monitor changes."
   (exwm--log)
   (remove-hook 'exwm-workspace-list-change-hook #'exwm-randr-refresh))
 
+;;;###autoload
+(define-minor-mode exwm-randr-mode
+  "Toggle EXWM randr support."
+  :global t
+  :group 'exwm
+  (exwm--global-minor-mode-body randr))
+
+;;;###autoload
 (defun exwm-randr-enable ()
-  "Enable RandR support for EXWM."
-  (exwm--log)
-  (add-hook 'exwm-init-hook #'exwm-randr--init)
-  (add-hook 'exwm-exit-hook #'exwm-randr--exit))
+  "Enable EXWM RandR support."
+  (exwm-randr-mode 1))
+(make-obsolete #'exwm-randr-enable "Use `exwm-randr-mode' instead." "0.40")
 
 
 
