@@ -686,13 +686,6 @@ Argument DATA contains the raw event data."
 (exwm--define-global-minor-mode systemtray
   "Global minor mode for toggling EXWM systemtray.")
 
-(defun exwm-systemtray-enable ()
-  "Enable system tray support for EXWM."
-  (add-hook 'exwm-init-hook #'exwm-systemtray-mode)
-  (add-hook 'exwm-exit-hook (apply-partially #'exwm-systemtray-mode -1))
-  (when exwm--connection (exwm-systemtray-mode)))
-(make-obsolete #'exwm-systemtray-enable "Use `exwm-systemtray-mode' instead." "0.40")
-
 
 
 (provide 'exwm-systemtray)

@@ -331,13 +331,6 @@ SERIAL is a sequence number."
 (exwm--define-global-minor-mode xsettings
   "Global minor mode for toggling EXWM Xsettings support.")
 
-(defun exwm-xsettings-enable ()
-  "Enable xsettings support for EXWM."
-  (add-hook 'exwm-init-hook #'exwm-xsettings-mode)
-  (add-hook 'exwm-exit-hook (apply-partially #'exwm-xsettings-mode -1))
-  (when exwm--connection (exwm-xsettings-mode)))
-(make-obsolete #'exwm-xsettings-enable "Use `exwm-xsettings-mode' instead." "0.40")
-
 (provide 'exwm-xsettings)
 
 ;;; exwm-xsettings.el ends here

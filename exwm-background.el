@@ -194,13 +194,6 @@ may kill this connection when they replace it.")
 (exwm--define-global-minor-mode background
   "Global minor mode for toggling EXWM background support.")
 
-(defun exwm-background-enable ()
-  "Enable background support for EXWM."
-  (add-hook 'exwm-init-hook #'exwm-background-mode)
-  (add-hook 'exwm-exit-hook (apply-partially #'exwm-background-mode -1))
-  (when exwm--connection (exwm-background-mode)))
-(make-obsolete #'exwm-background-enable "Use `exwm-background-mode' instead." "0.40")
-
 (provide 'exwm-background)
 
 ;;; exwm-background.el ends here

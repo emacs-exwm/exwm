@@ -412,24 +412,30 @@ One of `line-mode' or `char-mode'.")
   "Define global minor mode named exwm-NAME-mode.
 EXWM's init-hook and exit-hook are modified to call INIT and EXIT functions.
 If an X connection exists, the mode is immediately enabled or disabled."
-  (declare (indent 1) (debug t))
-  (let ((mode (intern (format "exwm-%s-mode" name)))
-        (init (or init (intern (format "exwm-%s--init" name))))
-        (exit (or exit (intern (format "exwm-%s--exit" name)))))
-    `(define-minor-mode ,mode
-       ,doc
-       :global t
-       :group 'exwm
-       (exwm--log)
-       (cond
-        (,mode
-         (add-hook 'exwm-init-hook #',init)
-         (add-hook 'exwm-exit-hook #',exit)
-         (when exwm--connection (,init)))
-        (t
-         (remove-hook 'exwm-init-hook #',init)
-         (remove-hook 'exwm-exit-hook #',exit)
-         (when exwm--connection (,exit)))))))
+  (declare (doc-string 2) (indent 1) (debug t))
+  (let* ((mode (intern (format "exwm-%s-mode" name)))
+         (enable (intern (format "exwm-%s-enable" name)))
+         (enabledoc (format "Enable %s support for EXWM." name))
+         (deprecation (format "Use `%s' instead." mode))
+         (init (or init (intern (format "exwm-%s--init" name))))
+         (exit (or exit (intern (format "exwm-%s--exit" name)))))
+    `(prog1
+       (define-minor-mode ,mode
+         ,doc
+         :global t
+         :group 'exwm
+         (exwm--log)
+         (cond
+          (,mode
+           (add-hook 'exwm-init-hook #',init)
+           (add-hook 'exwm-exit-hook #',exit)
+           (when exwm--connection (,init)))
+          (t
+           (remove-hook 'exwm-init-hook #',init)
+           (remove-hook 'exwm-exit-hook #',exit)
+           (when exwm--connection (,exit)))))
+       (defun ,enable () ,enabledoc (,mode 1))
+       (make-obsolete #',enable ,deprecation "0.40"))))
 
 
 (provide 'exwm-core)

@@ -360,13 +360,6 @@ Refresh when any RandR 1.5 monitor changes."
 (exwm--define-global-minor-mode randr
   "Global minor mode for toggling EXWM RandR support.")
 
-(defun exwm-randr-enable ()
-  "Enable RandR support for EXWM."
-  (add-hook 'exwm-init-hook #'exwm-randr-mode)
-  (add-hook 'exwm-exit-hook (apply-partially #'exwm-randr-mode -1))
-  (when exwm--connection (exwm-randr-mode)))
-(make-obsolete #'exwm-randr-enable "Use `exwm-randr-mode' instead." "0.40")
-
 
 
 (provide 'exwm-randr)

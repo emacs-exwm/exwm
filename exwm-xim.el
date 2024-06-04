@@ -801,13 +801,6 @@ Such event would be received when the client window is destroyed."
 (exwm--define-global-minor-mode xim
   "Global minor mode for toggling EXWM XIM support.")
 
-(defun exwm-xim-enable ()
-  "Enable XIM support for EXWM."
-  (add-hook 'exwm-init-hook #'exwm-xim-mode)
-  (add-hook 'exwm-exit-hook (apply-partially #'exwm-xim-mode -1))
-  (when exwm--connection (exwm-xim-mode)))
-(make-obsolete #'exwm-xim-enable "Use `exwm-xim-mode' instead." "0.40")
-
 
 
 (provide 'exwm-xim)
