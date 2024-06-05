@@ -122,6 +122,10 @@ After this time, the server will be killed.")
 
 (defvar exwm--server-process nil "Process of the subordinate Emacs server.")
 
+(defvar exwm--client-message-functions nil
+  "Alist of form ((MESSAGE . MESSAGE-HANDLER)...).
+Set during `exwm-init'.")
+
 (defun exwm-reset ()
   "Reset the state of the selected window (non-fullscreen, line-mode, etc)."
   (interactive)
@@ -463,188 +467,202 @@ DATA contains unmarshalled PropertyNotify event data."
                           (x-get-atom-name atom exwm-workspace--current)
                           atom)))))))
 
+(defun exwm--on-net-number-of-desktops (_id data)
+  "Handle _NET_NUMBER_OF_DESKTOPS_ message with DATA."
+  (let ((current (exwm-workspace--count))
+        (requested (elt data 0)))
+    ;; Only allow increasing/decreasing the workspace number by 1.
+    (cond
+     ((< current requested)
+      (make-frame))
+     ((and (> current requested)
+           (> current 1))
+      (let ((frame (car (last exwm-workspace--list))))
+        (delete-frame frame))))))
+
+(defun exwm--on-net-current-desktop (_id data)
+  "Handle _NET_CURRENT_DESKTOP message with DATA."
+  (exwm-workspace-switch (elt data 0)))
+
+(defun exwm--on-net-active-window (id _data)
+  "Handle _NET_ACTIVE_WINDOW message with ID."
+  (let ((buffer (exwm--id->buffer id))
+        window)
+    (if (buffer-live-p buffer)
+        ;; Either an `exwm-mode' buffer (an X window) or a floating frame.
+        (with-current-buffer buffer
+          (when (eq exwm--frame exwm-workspace--current)
+            (if exwm--floating-frame
+                (select-frame exwm--floating-frame)
+              (setq window (get-buffer-window nil t))
+              (unless window
+                ;; State change: iconic => normal.
+                (setq window (frame-selected-window exwm--frame))
+                (set-window-buffer window (current-buffer)))
+              ;; Focus transfer.
+              (select-window window))))
+      ;; A workspace.
+      (dolist (f exwm-workspace--list)
+        (when (eq id (frame-parameter f 'exwm-outer-id))
+          (x-focus-frame f t))))))
+
+(defun exwm--on-net-close-window (id _data)
+  "Handle _NET_CLOSE_WINDOW message with ID."
+  (let ((buffer (exwm--id->buffer id)))
+    (when (buffer-live-p buffer)
+      (exwm--defer 0 #'kill-buffer buffer))))
+
+(defun exwm--on-net-wm-moveresize (id data)
+  "Handle _NET_WM_MOVERESIZE message with ID and DATA."
+  (let ((direction (elt data 2))
+        (buffer (exwm--id->buffer id)))
+    (unless (and buffer
+                 (not (buffer-local-value 'exwm--floating-frame buffer)))
+      (cond ((= direction
+                xcb:ewmh:_NET_WM_MOVERESIZE_SIZE_KEYBOARD)
+             ;; FIXME
+             )
+            ((= direction
+                xcb:ewmh:_NET_WM_MOVERESIZE_MOVE_KEYBOARD)
+             ;; FIXME
+             )
+            ((= direction xcb:ewmh:_NET_WM_MOVERESIZE_CANCEL)
+             (exwm-floating--stop-moveresize))
+            ;; In case it's a workspace frame.
+            ((and (not buffer)
+                  (catch 'break
+                    (dolist (f exwm-workspace--list)
+                      (when (or (eq id (frame-parameter f 'exwm-outer-id))
+                                (eq id (frame-parameter f 'exwm-id)))
+                        (throw 'break t)))
+                    nil)))
+            (t
+             ;; In case it's a floating frame,
+             ;; move the corresponding X window instead.
+             (unless buffer
+               (catch 'break
+                 (dolist (pair exwm--id-buffer-alist)
+                   (with-current-buffer (cdr pair)
+                     (when
+                         (and exwm--floating-frame
+                              (or (eq id
+                                      (frame-parameter exwm--floating-frame
+                                                       'exwm-outer-id))
+                                  (eq id
+                                      (frame-parameter exwm--floating-frame
+                                                       'exwm-id))))
+                       (setq id exwm--id)
+                       (throw 'break nil))))))
+             ;; Start to move it.
+             (exwm-floating--start-moveresize id direction))))))
+
+(defun exwm--on-net-request-frame-extents (id _data)
+  "Handle _NET_REQUEST_FRAME_EXTENTS message with ID."
+  (let ((buffer (exwm--id->buffer id))
+        top btm)
+    (if (or (not buffer)
+            (not (buffer-local-value 'exwm--floating-frame buffer)))
+        (setq top 0
+              btm 0)
+      (setq top (window-header-line-height)
+            btm (window-mode-line-height)))
+    (xcb:+request exwm--connection
+        (make-instance 'xcb:ewmh:set-_NET_FRAME_EXTENTS
+                       :window id
+                       :left 0
+                       :right 0
+                       :top top
+                       :bottom btm)))
+  (xcb:flush exwm--connection))
+
+(defun exwm--on-net-wm-desktop (id data)
+  "Handle _NET_WM_DESKTOP message with ID and DATA."
+  (let ((buffer (exwm--id->buffer id)))
+    (when (buffer-live-p buffer)
+      (exwm-workspace-move-window (elt data 0) id))))
+
+(defun exwm--on-net-wm-state (id data)
+  "Handle _NET_WM_STATE message with ID and DATA."
+  (let ((action (elt data 0))
+        (props (list (elt data 1) (elt data 2)))
+        (buffer (exwm--id->buffer id))
+        props-new)
+    ;; only support _NET_WM_STATE_FULLSCREEN / _NET_WM_STATE_ADD for frames
+    (when (and (not buffer)
+               (memq xcb:Atom:_NET_WM_STATE_FULLSCREEN props)
+               (= action xcb:ewmh:_NET_WM_STATE_ADD))
+      (xcb:+request
+          exwm--connection
+          (make-instance 'xcb:ewmh:set-_NET_WM_STATE
+                         :window id
+                         :data (vector xcb:Atom:_NET_WM_STATE_FULLSCREEN)))
+      (xcb:flush exwm--connection))
+    (when buffer                    ;ensure it's managed
+      (with-current-buffer buffer
+        ;; _NET_WM_STATE_FULLSCREEN
+        (when (or (memq xcb:Atom:_NET_WM_STATE_FULLSCREEN props)
+                  (memq xcb:Atom:_NET_WM_STATE_ABOVE props))
+          (cond ((= action xcb:ewmh:_NET_WM_STATE_ADD)
+                 (unless (exwm-layout--fullscreen-p)
+                   (exwm-layout-set-fullscreen id))
+                 (push xcb:Atom:_NET_WM_STATE_FULLSCREEN props-new))
+                ((= action xcb:ewmh:_NET_WM_STATE_REMOVE)
+                 (when (exwm-layout--fullscreen-p)
+                   (exwm-layout-unset-fullscreen id)))
+                ((= action xcb:ewmh:_NET_WM_STATE_TOGGLE)
+                 (if (exwm-layout--fullscreen-p)
+                     (exwm-layout-unset-fullscreen id)
+                   (exwm-layout-set-fullscreen id)
+                   (push xcb:Atom:_NET_WM_STATE_FULLSCREEN props-new)))))
+        ;; _NET_WM_STATE_DEMANDS_ATTENTION
+        ;; FIXME: check (may require other properties set)
+        (when (memq xcb:Atom:_NET_WM_STATE_DEMANDS_ATTENTION props)
+          (when (= action xcb:ewmh:_NET_WM_STATE_ADD)
+            (unless (eq exwm--frame exwm-workspace--current)
+              (set-frame-parameter exwm--frame 'exwm-urgency t)
+              (setq exwm-workspace--switch-history-outdated t)))
+          ;; xcb:ewmh:_NET_WM_STATE_REMOVE?
+          ;; xcb:ewmh:_NET_WM_STATE_TOGGLE?
+          )
+        (xcb:+request exwm--connection
+            (make-instance 'xcb:ewmh:set-_NET_WM_STATE
+                           :window id :data (vconcat props-new)))
+        (xcb:flush exwm--connection)))))
+
+(defun exwm--on-wm-protocols (_id data)
+  "Handle WM_PROTOCOLS message with DATA."
+  (let ((type (elt data 0)))
+    (cond ((= type xcb:Atom:_NET_WM_PING)
+           (setq exwm-manage--ping-lock nil))
+          (t (exwm--log "Unhandled WM_PROTOCOLS of type: %d" type)))))
+
+(defun exwm--on-wm-change-state (id data)
+  "Handle WM_CHANGE_STATE message with ID and DATA."
+  (let ((buffer (exwm--id->buffer id)))
+    (when (and (buffer-live-p buffer)
+               (= (elt data 0) xcb:icccm:WM_STATE:IconicState))
+      (with-current-buffer buffer
+        (if exwm--floating-frame
+            (call-interactively #'exwm-floating-hide)
+          (bury-buffer))))))
+
 (defun exwm--on-ClientMessage (raw-data _synthetic)
   "Handle ClientMessage event.
 RAW-DATA contains unmarshalled ClientMessage event data."
-  (let ((obj (make-instance 'xcb:ClientMessage))
-        type id data)
-    (xcb:unmarshal obj raw-data)
-    (setq type (slot-value obj 'type)
-          id (slot-value obj 'window)
-          data (slot-value (slot-value obj 'data) 'data32))
-    (exwm--log "atom=%s(%s) id=#x%x data=%s" (x-get-atom-name type exwm-workspace--current)
-               type (or id 0) data)
-    (cond
-     ;; _NET_NUMBER_OF_DESKTOPS.
-     ((= type xcb:Atom:_NET_NUMBER_OF_DESKTOPS)
-      (let ((current (exwm-workspace--count))
-            (requested (elt data 0)))
-        ;; Only allow increasing/decreasing the workspace number by 1.
-        (cond
-         ((< current requested)
-          (make-frame))
-         ((and (> current requested)
-               (> current 1))
-          (let ((frame (car (last exwm-workspace--list))))
-            (delete-frame frame))))))
-     ;; _NET_CURRENT_DESKTOP.
-     ((= type xcb:Atom:_NET_CURRENT_DESKTOP)
-      (exwm-workspace-switch (elt data 0)))
-     ;; _NET_ACTIVE_WINDOW.
-     ((= type xcb:Atom:_NET_ACTIVE_WINDOW)
-      (let ((buffer (exwm--id->buffer id))
-            window)
-        (if (buffer-live-p buffer)
-          ;; Either an `exwm-mode' buffer (an X window) or a floating frame.
-          (with-current-buffer buffer
-            (when (eq exwm--frame exwm-workspace--current)
-              (if exwm--floating-frame
-                  (select-frame exwm--floating-frame)
-                (setq window (get-buffer-window nil t))
-                (unless window
-                  ;; State change: iconic => normal.
-                  (setq window (frame-selected-window exwm--frame))
-                  (set-window-buffer window (current-buffer)))
-                ;; Focus transfer.
-                (select-window window))))
-          ;; A workspace.
-          (dolist (f exwm-workspace--list)
-            (when (eq id (frame-parameter f 'exwm-outer-id))
-              (x-focus-frame f t))))))
-     ;; _NET_CLOSE_WINDOW.
-     ((= type xcb:Atom:_NET_CLOSE_WINDOW)
-      (let ((buffer (exwm--id->buffer id)))
-        (when (buffer-live-p buffer)
-          (exwm--defer 0 #'kill-buffer buffer))))
-     ;; _NET_WM_MOVERESIZE
-     ((= type xcb:Atom:_NET_WM_MOVERESIZE)
-      (let ((direction (elt data 2))
-            (buffer (exwm--id->buffer id)))
-        (unless (and buffer
-                     (not (buffer-local-value 'exwm--floating-frame buffer)))
-          (cond ((= direction
-                    xcb:ewmh:_NET_WM_MOVERESIZE_SIZE_KEYBOARD)
-                 ;; FIXME
-                 )
-                ((= direction
-                    xcb:ewmh:_NET_WM_MOVERESIZE_MOVE_KEYBOARD)
-                 ;; FIXME
-                 )
-                ((= direction xcb:ewmh:_NET_WM_MOVERESIZE_CANCEL)
-                 (exwm-floating--stop-moveresize))
-                ;; In case it's a workspace frame.
-                ((and (not buffer)
-                      (catch 'break
-                        (dolist (f exwm-workspace--list)
-                          (when (or (eq id (frame-parameter f 'exwm-outer-id))
-                                    (eq id (frame-parameter f 'exwm-id)))
-                            (throw 'break t)))
-                        nil)))
-                (t
-                 ;; In case it's a floating frame,
-                 ;; move the corresponding X window instead.
-                 (unless buffer
-                   (catch 'break
-                     (dolist (pair exwm--id-buffer-alist)
-                       (with-current-buffer (cdr pair)
-                         (when
-                             (and exwm--floating-frame
-                                  (or (eq id
-                                          (frame-parameter exwm--floating-frame
-                                                           'exwm-outer-id))
-                                      (eq id
-                                          (frame-parameter exwm--floating-frame
-                                                           'exwm-id))))
-                           (setq id exwm--id)
-                           (throw 'break nil))))))
-                 ;; Start to move it.
-                 (exwm-floating--start-moveresize id direction))))))
-     ;; _NET_REQUEST_FRAME_EXTENTS
-     ((= type xcb:Atom:_NET_REQUEST_FRAME_EXTENTS)
-      (let ((buffer (exwm--id->buffer id))
-            top btm)
-        (if (or (not buffer)
-                (not (buffer-local-value 'exwm--floating-frame buffer)))
-            (setq top 0
-                  btm 0)
-          (setq top (window-header-line-height)
-                btm (window-mode-line-height)))
-        (xcb:+request exwm--connection
-            (make-instance 'xcb:ewmh:set-_NET_FRAME_EXTENTS
-                           :window id
-                           :left 0
-                           :right 0
-                           :top top
-                           :bottom btm)))
-      (xcb:flush exwm--connection))
-     ;; _NET_WM_DESKTOP.
-     ((= type xcb:Atom:_NET_WM_DESKTOP)
-      (let ((buffer (exwm--id->buffer id)))
-        (when (buffer-live-p buffer)
-          (exwm-workspace-move-window (elt data 0) id))))
-     ;; _NET_WM_STATE
-     ((= type xcb:Atom:_NET_WM_STATE)
-      (let ((action (elt data 0))
-            (props (list (elt data 1) (elt data 2)))
-            (buffer (exwm--id->buffer id))
-            props-new)
-        ;; only support _NET_WM_STATE_FULLSCREEN / _NET_WM_STATE_ADD for frames
-        (when (and (not buffer)
-                   (memq xcb:Atom:_NET_WM_STATE_FULLSCREEN props)
-                   (= action xcb:ewmh:_NET_WM_STATE_ADD))
-          (xcb:+request
-              exwm--connection
-              (make-instance 'xcb:ewmh:set-_NET_WM_STATE
-                             :window id
-                             :data (vector xcb:Atom:_NET_WM_STATE_FULLSCREEN)))
-          (xcb:flush exwm--connection))
-        (when buffer                    ;ensure it's managed
-          (with-current-buffer buffer
-            ;; _NET_WM_STATE_FULLSCREEN
-            (when (or (memq xcb:Atom:_NET_WM_STATE_FULLSCREEN props)
-                      (memq xcb:Atom:_NET_WM_STATE_ABOVE props))
-              (cond ((= action xcb:ewmh:_NET_WM_STATE_ADD)
-                     (unless (exwm-layout--fullscreen-p)
-                       (exwm-layout-set-fullscreen id))
-                     (push xcb:Atom:_NET_WM_STATE_FULLSCREEN props-new))
-                    ((= action xcb:ewmh:_NET_WM_STATE_REMOVE)
-                     (when (exwm-layout--fullscreen-p)
-                       (exwm-layout-unset-fullscreen id)))
-                    ((= action xcb:ewmh:_NET_WM_STATE_TOGGLE)
-                     (if (exwm-layout--fullscreen-p)
-                         (exwm-layout-unset-fullscreen id)
-                       (exwm-layout-set-fullscreen id)
-                       (push xcb:Atom:_NET_WM_STATE_FULLSCREEN props-new)))))
-            ;; _NET_WM_STATE_DEMANDS_ATTENTION
-            ;; FIXME: check (may require other properties set)
-            (when (memq xcb:Atom:_NET_WM_STATE_DEMANDS_ATTENTION props)
-              (when (= action xcb:ewmh:_NET_WM_STATE_ADD)
-                (unless (eq exwm--frame exwm-workspace--current)
-                  (set-frame-parameter exwm--frame 'exwm-urgency t)
-                  (setq exwm-workspace--switch-history-outdated t)))
-              ;; xcb:ewmh:_NET_WM_STATE_REMOVE?
-              ;; xcb:ewmh:_NET_WM_STATE_TOGGLE?
-              )
-            (xcb:+request exwm--connection
-                (make-instance 'xcb:ewmh:set-_NET_WM_STATE
-                               :window id :data (vconcat props-new)))
-            (xcb:flush exwm--connection)))))
-     ((= type xcb:Atom:WM_PROTOCOLS)
-      (let ((type (elt data 0)))
-        (cond ((= type xcb:Atom:_NET_WM_PING)
-               (setq exwm-manage--ping-lock nil))
-              (t (exwm--log "Unhandled WM_PROTOCOLS of type: %d" type)))))
-     ((= type xcb:Atom:WM_CHANGE_STATE)
-      (let ((buffer (exwm--id->buffer id)))
-        (when (and (buffer-live-p buffer)
-                   (= (elt data 0) xcb:icccm:WM_STATE:IconicState))
-          (with-current-buffer buffer
-            (if exwm--floating-frame
-                (call-interactively #'exwm-floating-hide)
-              (bury-buffer))))))
-     (t
-      (exwm--log "Unhandled: %s(%d)"
-                 (x-get-atom-name type exwm-workspace--current) type)))))
+  (let* ((obj (let ((m (make-instance 'xcb:ClientMessage)))
+                (xcb:unmarshal m raw-data)
+                m))
+         (type (slot-value obj 'type))
+         (id (slot-value obj 'window))
+         (data (slot-value (slot-value obj 'data) 'data32))
+         (fn (alist-get type exwm--client-message-functions)))
+    (if (not fn)
+        (exwm--log "Unhandled: %s(%d)"
+                   (x-get-atom-name type exwm-workspace--current) type)
+      (exwm--log "atom=%s(%s) id=#x%x data=%s"
+                 (x-get-atom-name type exwm-workspace--current)
+                 type (or id 0) data)
+      (funcall fn id data))))
 
 (defun exwm--on-SelectionClear (data _synthetic)
   "Handle SelectionClear events.
@@ -918,6 +936,18 @@ FRAME, if given, indicates the X display EXWM should manage."
         ;; Initialize ICCCM/EWMH support
         (xcb:icccm:init exwm--connection t)
         (xcb:ewmh:init exwm--connection t)
+        (setq
+         exwm--client-message-functions
+         (list (cons xcb:Atom:_NET_NUMBER_OF_DESKTOPS #'exwm--on-net-number-of-desktops)
+               (cons xcb:Atom:_NET_CURRENT_DESKTOP #'exwm--on-net-current-desktop)
+               (cons xcb:Atom:_NET_ACTIVE_WINDOW #'exwm--on-net-active-window)
+               (cons xcb:Atom:_NET_CLOSE_WINDOW #'exwm--on-net-close-window)
+               (cons xcb:Atom:_NET_REQUEST_FRAME_EXTENTS
+                     #'exwm--on-net-request-frame-extents)
+               (cons xcb:Atom:_NET_WM_DESKTOP #'exwm--on-net-wm-desktop)
+               (cons xcb:Atom:_NET_WM_STATE #'exwm--on-net-wm-state)
+               (cons xcb:Atom:WM_PROTOCOLS #'exwm--on-wm-protocols)
+               (cons xcb:Atom:WM_CHANGE_STATE #'exwm--on-wm-change-state)))
         ;; Try to register window manager selection.
         (exwm--wmsn-acquire exwm-replace)
         (when (xcb:+request-checked+request-check exwm--connection
