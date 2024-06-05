@@ -89,6 +89,8 @@ corresponding monitors whenever the monitors are active.
   \\='(1 \"HDMI-1\" 3 \"DP-1\")"
   :type '(plist :key-type integer :value-type string))
 
+(defvar exwm-randr--connection nil "The X connection.")
+
 (defvar exwm-randr--last-timestamp 0 "Used for debouncing events.")
 
 (defvar exwm-randr--prev-screen-change-seqnum nil
@@ -97,12 +99,30 @@ corresponding monitors whenever the monitors are active.
 (defvar exwm-randr--compatibility-mode nil
   "Non-nil when the server does not support RandR 1.5 protocol.")
 
+;;;###autoload
+(define-minor-mode exwm-randr-mode
+  "Toggle EXWM randr support."
+  :global t
+  :group 'exwm-randr
+  (exwm--global-minor-mode-body randr))
+
+(defun exwm-randr-enable ()
+  "Enable EXWM RandR support."
+  (exwm-randr-mode 1))
+(make-obsolete 'exwm-randr-enable "Use `exwm-randr-mode' instead." "0.30")
+
+(defsubst exwm-randr--assert-connected ()
+  "Assert that `exwm-randr-mode' is enabled and activated."
+  (cond
+   ((not exwm-randr-mode) (user-error "EXWM RandR mode not enabled"))
+   ((not exwm-randr--connection) (user-error "EXWM RandR not connected, is EXWM running?"))))
+
 (defun exwm-randr--get-monitors ()
   "Get RandR 1.5 monitors."
   (exwm--log)
   (let (monitor-name geometry monitor-geometry-alist primary-monitor)
     (with-slots (timestamp monitors)
-        (xcb:+request-unchecked+reply exwm--connection
+        (xcb:+request-unchecked+reply exwm-randr--connection
             (make-instance 'xcb:randr:GetMonitors
                            :window exwm--root
                            :get-active 1))
@@ -135,21 +155,21 @@ Only used when RandR 1.5 is not supported by the server."
   (exwm--log)
   (let (output-name geometry output-geometry-alist primary-output)
     (with-slots (config-timestamp outputs)
-        (xcb:+request-unchecked+reply exwm--connection
+        (xcb:+request-unchecked+reply exwm-randr--connection
             (make-instance 'xcb:randr:GetScreenResourcesCurrent
                            :window exwm--root))
       (when (> config-timestamp exwm-randr--last-timestamp)
         (setq exwm-randr--last-timestamp config-timestamp))
       (dolist (output outputs)
         (with-slots (crtc connection name)
-            (xcb:+request-unchecked+reply exwm--connection
+            (xcb:+request-unchecked+reply exwm-randr--connection
                 (make-instance 'xcb:randr:GetOutputInfo
                                :output output
                                :config-timestamp config-timestamp))
           (when (and (= connection xcb:randr:Connection:Connected)
                      (/= crtc 0))
             (with-slots (x y width height)
-                (xcb:+request-unchecked+reply exwm--connection
+                (xcb:+request-unchecked+reply exwm-randr--connection
                     (make-instance 'xcb:randr:GetCrtcInfo
                                    :crtc crtc
                                    :config-timestamp config-timestamp))
@@ -202,6 +222,7 @@ In a mirroring setup some monitors overlap and should be treated as one."
   "Refresh workspaces according to the updated RandR info."
   (interactive)
   (exwm--log)
+  (exwm-randr--assert-connected)
   (let* ((result (if exwm-randr--compatibility-mode
                      (exwm-randr--get-outputs)
                    (exwm-randr--get-monitors)))
@@ -237,7 +258,7 @@ In a mirroring setup some monitors overlap and should be treated as one."
       ;; Resize workspace.
       (dolist (f exwm-workspace--list)
         (exwm-workspace--set-fullscreen f))
-      (xcb:flush exwm--connection)
+      (xcb:flush exwm-randr--connection)
       ;; Raise the minibuffer if it's active.
       (when (and (active-minibuffer-window)
                  (exwm-workspace--minibuffer-own-frame-p))
@@ -250,7 +271,7 @@ In a mirroring setup some monitors overlap and should be treated as one."
       ;; Mark the workspace on the top of each monitor as active.
       (dolist (xwin
                (reverse
-                (slot-value (xcb:+request-unchecked+reply exwm--connection
+                (slot-value (xcb:+request-unchecked+reply exwm-randr--connection
                                 (make-instance 'xcb:QueryTree
                                                :window exwm--root))
                             'children)))
@@ -260,7 +281,7 @@ In a mirroring setup some monitors overlap and should be treated as one."
                   (rassq-delete-all monitor container-monitor-alist))
             (exwm-workspace--set-active (cdr (assq xwin container-frame-alist))
                                         t))))
-      (xcb:flush exwm--connection)
+      (xcb:flush exwm-randr--connection)
       (run-hooks 'exwm-randr-refresh-hook))))
 
 (defun exwm-randr--on-ScreenChangeNotify (data _synthetic)
@@ -306,14 +327,19 @@ Refresh when any RandR 1.5 monitor changes."
       (when (eq window exwm--root)
         (exwm-randr-refresh)))))
 
-(defun exwm-randr--init ()
+(cl-defun exwm-randr--init ()
   "Initialize RandR extension and EXWM RandR module."
   (exwm--log)
-  (when (= 0 (slot-value (xcb:get-extension-data exwm--connection 'xcb:randr)
+  (when exwm-randr--connection (cl-return))
+  (setq exwm-randr--connection (xcb:connect))
+  (set-process-query-on-exit-flag (slot-value exwm-randr--connection 'process) nil)
+  (when (= 0 (slot-value (xcb:get-extension-data exwm-randr--connection 'xcb:randr)
                          'present))
+    (xcb:disconnect exwm-randr--connection)
+    (setq exwm-randr--connection nil)
     (error "[EXWM] RandR extension is not supported by the server"))
   (with-slots (major-version minor-version)
-      (xcb:+request-unchecked+reply exwm--connection
+      (xcb:+request-unchecked+reply exwm-randr--connection
           (make-instance 'xcb:randr:QueryVersion
                          :major-version 1 :minor-version 5))
     (cond ((and (= major-version 1) (= minor-version 5))
@@ -321,6 +347,8 @@ Refresh when any RandR 1.5 monitor changes."
           ((and (= major-version 1) (>= minor-version 2))
            (setq exwm-randr--compatibility-mode t))
           (t
+           (xcb:disconnect exwm-randr--connection)
+           (setq exwm-randr--connection nil)
            (error "[EXWM] The server only support RandR version up to %d.%d"
                   major-version minor-version)))
     ;; External monitor(s) may already be connected.
@@ -329,20 +357,20 @@ Refresh when any RandR 1.5 monitor changes."
     ;; Listen for `ScreenChangeNotify' to notify external tools to
     ;; configure RandR and `CrtcChangeNotify/OutputChangeNotify' to
     ;; refresh the workspace layout.
-    (xcb:+event exwm--connection 'xcb:randr:ScreenChangeNotify
+    (xcb:+event exwm-randr--connection 'xcb:randr:ScreenChangeNotify
                 #'exwm-randr--on-ScreenChangeNotify)
-    (xcb:+event exwm--connection 'xcb:randr:Notify
+    (xcb:+event exwm-randr--connection 'xcb:randr:Notify
                 #'exwm-randr--on-Notify)
-    (xcb:+event exwm--connection 'xcb:ConfigureNotify
+    (xcb:+event exwm-randr--connection 'xcb:ConfigureNotify
                 #'exwm-randr--on-ConfigureNotify)
-    (xcb:+request exwm--connection
+    (xcb:+request exwm-randr--connection
         (make-instance 'xcb:randr:SelectInput
                        :window exwm--root
                        :enable (logior
                                 xcb:randr:NotifyMask:ScreenChange
                                 xcb:randr:NotifyMask:CrtcChange
                                 xcb:randr:NotifyMask:OutputChange)))
-    (xcb:flush exwm--connection)
+    (xcb:flush exwm-randr--connection)
     (add-hook 'exwm-workspace-list-change-hook #'exwm-randr-refresh))
   ;; Prevent frame parameters introduced by this module from being
   ;; saved/restored.
@@ -353,19 +381,10 @@ Refresh when any RandR 1.5 monitor changes."
 (defun exwm-randr--exit ()
   "Exit the RandR module."
   (exwm--log)
-  (remove-hook 'exwm-workspace-list-change-hook #'exwm-randr-refresh))
-
-;;;###autoload
-(define-minor-mode exwm-randr-mode
-  "Toggle EXWM randr support."
-  :global t
-  :group 'exwm-randr
-  (exwm--global-minor-mode-body randr))
-
-(defun exwm-randr-enable ()
-  "Enable EXWM RandR support."
-  (exwm-randr-mode 1))
-(make-obsolete 'exwm-randr-enable "Use `exwm-randr-mode' instead." "0.30")
+  (remove-hook 'exwm-workspace-list-change-hook #'exwm-randr-refresh)
+  (when exwm-randr--connection
+    (xcb:disconnect exwm-randr--connection)
+    (setq exwm-randr--connection nil)))
 
 
 
