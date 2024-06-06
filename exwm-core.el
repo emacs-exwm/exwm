@@ -411,9 +411,10 @@ One of `line-mode' or `char-mode'.")
         vertical-scroll-bar nil))
 
 (defmacro exwm--global-minor-mode-body (name &optional init exit)
-  "Define EXWM namespaced global minor mode with NAME.
-EXWM's init-hook and exit-hook are modified to call INIT and EXIT functions.
-If an X connection exists, the mode is immediately enabled or disabled."
+  "Global minor mode body for mode with NAME.
+The INIT and EXIT functions are added to `exwm-init-hook' and
+`exwm-exit-hook' respectively.  If an X connection exists, the mode is
+immediately enabled or disabled."
   (declare (indent 1) (debug t))
   (let* ((mode (intern (format "exwm-%s-mode" name)))
          (init (or init (intern (format "exwm-%s--init" name))))
