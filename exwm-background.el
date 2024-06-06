@@ -156,10 +156,12 @@ may kill this connection when they replace it.")
   (xcb:flush exwm-background--connection))
 
 (defun exwm-background--connected-p ()
+  "Return t if a live background connection process exists and is connected."
   (and exwm-background--connection
        (process-live-p (slot-value exwm-background--connection 'process))))
 
 (defun exwm-background--connect ()
+  "Establish background Pixmap connection."
   (unless (exwm-background--connected-p)
     (setq exwm-background--connection (xcb:connect))
     ;;prevent query message on exit

@@ -46,7 +46,6 @@
   '(?\C-x ?\C-u ?\C-h ?\M-x ?\M-` ?\M-& ?\M-:)
   "List of prefix keys EXWM should forward to Emacs when in `line-mode'.
 
-The point is to make keys like `C-x C-f' forwarded to Emacs in `line-mode'.
 There is no need to add prefix keys for global/simulation keys or those
 defined in `exwm-mode-map' here."
   :type '(repeat key-sequence)
@@ -231,7 +230,7 @@ ARGS are additional arguments to CALLBACK."
   (xcb:flush exwm--connection))
 
 (defun exwm-input--on-PropertyNotify (data _synthetic)
-  "Handle PropertyNotify events."
+  "Handle PropertyNotify events with DATA."
   (exwm--log)
   (when exwm-input--timestamp-callback
     (let ((obj (make-instance 'xcb:PropertyNotify)))
@@ -246,7 +245,7 @@ ARGS are additional arguments to CALLBACK."
 (defvar exwm-input--last-enter-notify-position nil)
 
 (defun exwm-input--on-EnterNotify (data _synthetic)
-  "Handle EnterNotify events."
+  "Handle EnterNotify events with DATA."
   (let ((evt (make-instance 'xcb:EnterNotify))
         buffer window frame frame-xid edges fake-evt)
     (xcb:unmarshal evt data)
@@ -292,6 +291,7 @@ ARGS are additional arguments to CALLBACK."
       (setq exwm-input--last-enter-notify-position (vector root-x root-y)))))
 
 (defun exwm-input--on-keysyms-update ()
+  "Update global prefix keys."
   (exwm--log)
   (let ((exwm-input--global-prefix-keys nil))
     (exwm-input--update-global-prefix-keys)))
@@ -386,7 +386,8 @@ attempt later."
             (xcb:flush exwm--connection)))))))
 
 (defun exwm-input--set-active-window (&optional id)
-  "Set _NET_ACTIVE_WINDOW."
+  "Set _NET_ACTIVE_WINDOW.
+When non-nil, ID is passed as the window data."
   (exwm--log)
   (xcb:+request exwm--connection
       (make-instance 'xcb:ewmh:set-_NET_ACTIVE_WINDOW
@@ -394,7 +395,7 @@ attempt later."
                      :data (or id xcb:Window:None))))
 
 (defun exwm-input--on-ButtonPress (data _synthetic)
-  "Handle ButtonPress event."
+  "Handle ButtonPress event with DATA."
   (let ((obj (make-instance 'xcb:ButtonPress))
         (mode xcb:Allow:SyncPointer)
         button-event window buffer frame fake-last-command)
@@ -466,7 +467,7 @@ attempt later."
   (run-hooks 'exwm-input--event-hook))
 
 (defun exwm-input--on-KeyPress (data _synthetic)
-  "Handle KeyPress event."
+  "Handle KeyPress event with DATA."
   (with-current-buffer (window-buffer (selected-window))
     (let ((obj (make-instance 'xcb:KeyPress)))
       (xcb:unmarshal obj data)
@@ -482,7 +483,7 @@ attempt later."
     (run-hooks 'exwm-input--event-hook)))
 
 (defun exwm-input--on-CreateNotify (data _synthetic)
-  "Handle CreateNotify events."
+  "Handle CreateNotify events with DATA."
   (exwm--log)
   (let ((evt (make-instance 'xcb:CreateNotify)))
     (xcb:unmarshal evt data)
@@ -505,6 +506,7 @@ attempt later."
                            'children))))))
 
 (defun exwm-input--grab-global-prefix-keys (&rest xwins)
+  "Grab global prefix keys in XWINS."
   (exwm--log)
   (let ((req (make-instance 'xcb:GrabKey
                             :owner-events 0
@@ -539,6 +541,7 @@ attempt later."
     (xcb:flush exwm--connection)))
 
 (defun exwm-input--set-key (key command)
+  "Set KEY to COMMAND."
   (exwm--log "key: %s, command: %s" key command)
   (global-set-key key command)
   (cl-pushnew key exwm-input--global-keys))
@@ -566,9 +569,9 @@ Notes:
 
 ;;;###autoload
 (defun exwm-input-set-key (key command)
-  "Set a global key binding.
+  "Set a global KEY binding to COMMAND.
 
-The new key binding only takes effect in real time when this command is
+The new binding only takes effect in real time when this command is
 called interactively, and is lost when this session ends unless it's
 specifically saved in the Customize interface for `exwm-input-global-keys'.
 
@@ -583,6 +586,7 @@ instead."
     (exwm-input--update-global-prefix-keys)))
 
 (defsubst exwm-input--unread-event (event)
+  "Append EVENT to `unread-command-events'."
   (declare (indent defun))
   (setq unread-command-events
         (append unread-command-events `((t . ,event)))))
@@ -602,6 +606,7 @@ instead."
   event)
 
 (cl-defun exwm-input--translate (key)
+  "Translate KEY."
   (let (translation)
     (dolist (map (list input-decode-map
                        local-function-key-map
@@ -614,7 +619,8 @@ instead."
   key)
 
 (defun exwm-input--cache-event (event &optional temp-line-mode)
-  "Cache EVENT."
+  "Cache EVENT.
+When non-nil, TEMP-LINE-MODE temporarily puts the window in line mode."
   (exwm--log "%s" event)
   (setq exwm-input--line-mode-cache
         (vconcat exwm-input--line-mode-cache (vector event)))
@@ -681,9 +687,9 @@ Current buffer must be an `exwm-mode' buffer."
                 (error-message-string err))
      (xcb-debug:backtrace))))
 
-(defun exwm-input--on-KeyPress-line-mode (key-press raw-data)
-  "Parse X KeyPress event to Emacs key event and then feed the command loop."
-  (with-slots (detail state) key-press
+(defun exwm-input--on-KeyPress-line-mode (keypress raw-data)
+  "Feed parsed X KEYPRESS event with RAW-DATA to Emacs command loop."
+  (with-slots (detail state) keypress
     (let ((keysym (xcb:keysyms:keycode->keysym exwm--connection detail state))
           event raw-event mode)
       (exwm--log "%s" keysym)
@@ -707,7 +713,7 @@ Current buffer must be an `exwm-mode' buffer."
           (xcb:+request exwm--connection
               (make-instance 'xcb:SendEvent
                              :propagate 0
-                             :destination (slot-value key-press 'event)
+                             :destination (slot-value keypress 'event)
                              :event-mask xcb:EventMask:NoEvent
                              :event raw-data)))
         (when event
@@ -722,9 +728,9 @@ Current buffer must be an `exwm-mode' buffer."
                          :time xcb:Time:CurrentTime))
       (xcb:flush exwm--connection))))
 
-(defun exwm-input--on-KeyPress-char-mode (key-press &optional _raw-data)
-  "Handle KeyPress event in `char-mode'."
-  (with-slots (detail state) key-press
+(defun exwm-input--on-KeyPress-char-mode (keypress &optional _raw-data)
+  "Handle `char-mode' KEYPRESS event."
+  (with-slots (detail state) keypress
     (let ((keysym (xcb:keysyms:keycode->keysym exwm--connection detail state))
           event raw-event)
       (exwm--log "%s" keysym)
@@ -840,7 +846,8 @@ button event."
 
 ;;;###autoload
 (defun exwm-input-grab-keyboard (&optional id)
-  "Switch to `line-mode'."
+  "Switch to `line-mode`.
+When ID is non-nil, grab key events on its corresponding window."
   (interactive (list (when (derived-mode-p 'exwm-mode)
                        (exwm--buffer->id (window-buffer)))))
   (when id
@@ -851,7 +858,8 @@ button event."
 
 ;;;###autoload
 (defun exwm-input-release-keyboard (&optional id)
-  "Switch to `char-mode`."
+  "Switch to `char-mode`.
+When ID is non-nil, release keyboard events on its corresponding window."
   (interactive (list (when (derived-mode-p 'exwm-mode)
                        (exwm--buffer->id (window-buffer)))))
   (when id
@@ -862,7 +870,8 @@ button event."
 
 ;;;###autoload
 (defun exwm-input-toggle-keyboard (&optional id)
-  "Toggle between `line-mode' and `char-mode'."
+  "Toggle between `line-mode' and `char-mode'.
+When ID is non-nil, toggle in its correpsonding window."
   (interactive (list (when (derived-mode-p 'exwm-mode)
                        (exwm--buffer->id (window-buffer)))))
   (when id
@@ -904,25 +913,24 @@ button event."
     (xcb:flush exwm--connection)))
 
 ;;;###autoload
-(cl-defun exwm-input-send-next-key (times &optional end-key)
-  "Send next key to client window.
-
-EXWM will prompt for the key to send.  This command can be prefixed to send
-multiple keys.  If END-KEY is non-nil, stop sending keys if it's pressed."
+(cl-defun exwm-input-send-next-key (n &optional end-key)
+  "Send next N keys to client window.
+N is currently capped at 12.
+EXWM will prompt for the key to send.
+If END-KEY is non-nil, stop sending keys if it's pressed."
   (interactive "p")
   (exwm--log)
-  (unless (derived-mode-p 'exwm-mode)
-    (cl-return-from exwm-input-send-next-key))
-  (when (> times 12) (setq times 12))
+  (unless (derived-mode-p 'exwm-mode) (cl-return-from exwm-input-send-next-key))
+  (setq n (min n 12))
   (let (key keys)
-    (dotimes (i times)
+    (dotimes (i n)
       ;; Skip events not from keyboard
       (let ((exwm-input-line-mode-passthrough t))
         (catch 'break
           (while t
             (setq key (read-key (format "Send key: %s (%d/%d) %s"
                                         (key-description keys)
-                                        (1+ i) times
+                                        (1+ i) n
                                         (if end-key
                                             (concat "To exit, press: "
                                                     (key-description
@@ -933,10 +941,11 @@ multiple keys.  If END-KEY is non-nil, stop sending keys if it's pressed."
       (when (eq key end-key) (cl-return-from exwm-input-send-next-key))
       (exwm-input--fake-key key))))
 
-(defun exwm-input--set-simulation-keys (simulation-keys &optional no-refresh)
-  "Set simulation keys."
-  (exwm--log "%s" simulation-keys)
-  (unless no-refresh
+(defun exwm-input--set-simulation-keys (keys &optional cache)
+  "Set simulation KEYS.
+If CACHE is non-nil reuse `exwm-input--simulation-keys' cache."
+  (exwm--log "%s" keys)
+  (unless cache
     ;; Unbind simulation keys.
     (let ((hash (buffer-local-value 'exwm-input--simulation-keys
                                     (current-buffer))))
@@ -949,7 +958,7 @@ multiple keys.  If END-KEY is non-nil, stop sending keys if it's pressed."
                  hash)))
     ;; Abandon the old hash table.
     (setq exwm-input--simulation-keys (make-hash-table :test #'equal)))
-  (dolist (i simulation-keys)
+  (dolist (i keys)
     (let ((original (vconcat (car i)))
           (simulated (cdr i)))
       (setq simulated (if (sequencep simulated)
@@ -966,7 +975,7 @@ multiple keys.  If END-KEY is non-nil, stop sending keys if it's pressed."
                (if exwm-input--local-simulation-keys
                    (local-set-key key #'exwm-input-send-simulation-key)
                  (define-key exwm-mode-map key
-                   #'exwm-input-send-simulation-key))))
+                             #'exwm-input-send-simulation-key))))
            exwm-input--simulation-keys))
 
 (defcustom exwm-input-simulation-keys nil
@@ -1013,6 +1022,7 @@ Notes:
   :type '(repeat function))
 
 (cl-defun exwm-input--read-keys (prompt stop-key)
+  "Read keys with PROMPT until STOP-KEY pressed."
   (let ((cursor-in-echo-area t)
         keys key)
     (while (not (eq key stop-key))
@@ -1026,7 +1036,7 @@ Notes:
 
 ;;;###autoload
 (defun exwm-input-set-simulation-key (original-key simulated-key)
-  "Set a simulation key.
+  "Set ORIGINAL-KEY to  SIMULATED-KEY.
 
 The simulation key takes effect in real time, but is lost when this session
 ends unless it's specifically saved in the Customize interface for
@@ -1069,15 +1079,15 @@ where both ORIGINAL-KEY and SIMULATED-KEY are key sequences."
     (exwm-input--set-simulation-keys simulation-keys)))
 
 ;;;###autoload
-(cl-defun exwm-input-send-simulation-key (times)
-  "Fake a key event according to the last input key sequence."
+(cl-defun exwm-input-send-simulation-key (n)
+  "Fake N key events according to the last input key sequence."
   (interactive "p")
   (exwm--log)
   (unless (derived-mode-p 'exwm-mode)
     (cl-return-from exwm-input-send-simulation-key))
   (let ((keys (gethash (this-single-command-keys)
                        exwm-input--simulation-keys)))
-    (dotimes (_ times)
+    (dotimes (_ n)
       (dolist (key keys)
         (exwm-input--fake-key key)))))
 

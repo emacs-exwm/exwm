@@ -125,13 +125,14 @@ This hook runs in the context of the corresponding buffer."
 (declare-function exwm-workspace--update-offsets "exwm-workspace.el" ())
 (declare-function exwm-workspace--workarea "exwm-workspace.el" (frame))
 
-(defun exwm-floating--set-allowed-actions (id tilling)
-  "Set _NET_WM_ALLOWED_ACTIONS."
+(defun exwm-floating--set-allowed-actions (id tiled-p)
+  "Set _NET_WM_ALLOWED_ACTIONS for window with ID.
+If TILED-P is non-nil, set actions for tiled window."
   (exwm--log "#x%x" id)
   (xcb:+request exwm--connection
       (make-instance 'xcb:ewmh:set-_NET_WM_ALLOWED_ACTIONS
                      :window id
-                     :data (if tilling
+                     :data (if tiled-p
                                (vector xcb:Atom:_NET_WM_ACTION_MINIMIZE
                                        xcb:Atom:_NET_WM_ACTION_FULLSCREEN
                                        xcb:Atom:_NET_WM_ACTION_CHANGE_DESKTOP
@@ -466,7 +467,9 @@ This hook runs in the context of the corresponding buffer."
     (select-frame-set-input-focus exwm-workspace--current)))
 
 (defun exwm-floating--start-moveresize (id &optional type)
-  "Start move/resize."
+  "Start move/resize for window with ID.
+When non-nil, TYPE indicates the type of move/resize.
+Float resizing is stopped when TYPE is nil."
   (exwm--log "#x%x" id)
   (let ((buffer-or-id (or (exwm--id->buffer id) id))
         frame container-or-id x y width height cursor)
@@ -672,7 +675,7 @@ This hook runs in the context of the corresponding buffer."
     (setq exwm-floating--moveresize-calculate nil)))
 
 (defun exwm-floating--do-moveresize (data _synthetic)
-  "Perform move/resize."
+  "Perform move/resize on floating window with DATA."
   (when exwm-floating--moveresize-calculate
     (let* ((obj (make-instance 'xcb:MotionNotify))
            result value-mask x y width height buffer-or-id container-or-id)
