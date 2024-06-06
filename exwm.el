@@ -139,7 +139,7 @@ After this time, the server will be killed.")
   "Restart EXWM."
   (interactive)
   (exwm--log)
-  (when (exwm--confirm-kill-emacs "Restart?" 'no-check)
+  (when (exwm--confirm-kill-emacs "Restart" 'no-check)
     (let* ((attr (process-attributes (emacs-pid)))
            (args (cdr (assq 'args attr)))
            (ppid (cdr (assq 'ppid attr)))
@@ -976,7 +976,10 @@ FRAME, if given, indicates the X display EXWM should manage."
 
 ;;;###autoload
 (defun exwm-enable (&optional undo)
-  "Enable/Disable EXWM."
+  "Enable/Disable EXWM.
+Optional argument UNDO may be either of the following symbols:
+- `undo' prevents reinitialization.
+- `undo-all' attempts to revert all hooks and advice."
   (exwm--log "%s" undo)
   (pcase undo
     (`undo                              ;prevent reinitialization
@@ -1062,7 +1065,7 @@ FUNCTION is the function to be evaluated, ARGS are the arguments."
   ;; This is invoked instead of `save-buffers-kill-emacs' (C-x C-c) on client
   ;; frames.
   (if (exwm--terminal-p)
-      (exwm--confirm-kill-emacs "Kill terminal?")
+      (exwm--confirm-kill-emacs "Kill terminal")
     t))
 
 (defun exwm--confirm-kill-emacs (prompt &optional force)
@@ -1087,7 +1090,7 @@ If FORCE is any other non-nil value, force killing of Emacs."
             (`break (y-or-n-p prompt))
             (x x)))
          (t
-          (yes-or-no-p (format "[EXWM] %d X window(s) will be destroyed.  %s"
+          (yes-or-no-p (format "[EXWM] %d X window(s) will be destroyed.  %s?"
                                (length exwm--id-buffer-alist) prompt))))
     ;; Run `kill-emacs-hook' (`server-force-stop' excluded) before Emacs
     ;; frames are unmapped so that errors (if any) can be visible.

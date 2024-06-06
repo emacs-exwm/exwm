@@ -269,7 +269,7 @@ this client."
       (xcb:flush exwm-xim--conn))))
 
 (cl-defun exwm-xim--on-ClientMessage (data _synthetic)
-  "Handle ClientMessage event on IMS communication window (request).
+  "Handle ClientMessage event DATA on IMS communication window (request).
 
 Such events would be received when clients request for _XIM_PROTOCOL.
 The actual XIM request is in client message data or a property."

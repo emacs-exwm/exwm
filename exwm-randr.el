@@ -264,7 +264,7 @@ In a mirroring setup some monitors overlap and should be treated as one."
       (run-hooks 'exwm-randr-refresh-hook))))
 
 (defun exwm-randr--on-ScreenChangeNotify (data _synthetic)
-  "Handle `ScreenChangeNotify' event.
+  "Handle `ScreenChangeNotify' event with DATA.
 
 Run `exwm-randr-screen-change-hook' (usually user scripts to configure RandR)."
   (exwm--log)
@@ -276,7 +276,7 @@ Run `exwm-randr-screen-change-hook' (usually user scripts to configure RandR)."
         (run-hooks 'exwm-randr-screen-change-hook)))))
 
 (defun exwm-randr--on-Notify (data _synthetic)
-  "Handle `CrtcChangeNotify' and `OutputChangeNotify' events.
+  "Handle `CrtcChangeNotify' and `OutputChangeNotify' events with DATA.
 
 Refresh when any CRTC/output changes."
   (exwm--log)
@@ -296,7 +296,7 @@ Refresh when any CRTC/output changes."
             (setq exwm-randr--last-timestamp timestamp)))))))
 
 (defun exwm-randr--on-ConfigureNotify (data _synthetic)
-  "Handle `ConfigureNotify' event.
+  "Handle `ConfigureNotify' event with DATA.
 
 Refresh when any RandR 1.5 monitor changes."
   (exwm--log)

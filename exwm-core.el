@@ -38,12 +38,12 @@
   :group 'exwm)
 
 (defcustom exwm-debug-log-time-function #'exwm-debug-log-uptime
-  "Function used for generating timestamps in `exwm-debug' logs.
+  "Function used for generating timestamps in debug log.
 
 Here are some predefined candidates:
 `exwm-debug-log-uptime': Display the uptime of this Emacs instance.
 `exwm-debug-log-time': Display time of day.
-`nil': Disable timestamp."
+nil: Disable timestamp."
   :type `(choice (const :tag "Emacs uptime" ,#'exwm-debug-log-uptime)
                  (const :tag "Time of day" ,#'exwm-debug-log-time)
                  (const :tag "Off" nil)
@@ -98,14 +98,15 @@ Here are some predefined candidates:
 (declare-function exwm-workspace-switch "exwm-workspace.el"
                   (frame-or-index &optional force))
 
-(define-minor-mode exwm-debug
+(define-minor-mode exwm-debug-mode
   "Debug-logging enabled if non-nil."
   :global t
   :group 'exwm-debug)
+(define-obsolete-function-alias 'exwm-debug 'exwm-debug-mode "0.30")
 
 (defmacro exwm--debug (&rest forms)
-  "Evaluate FORMS if mode `exwm-debug' is active."
-  (when exwm-debug `(progn ,@forms)))
+  "Evaluate FORMS if `exwm-debug-mode' is active."
+  (when exwm-debug-mode `(progn ,@forms)))
 
 (defmacro exwm--log (&optional format-string &rest objects)
   "Emit a message prepending the name of the function being executed.
@@ -113,7 +114,7 @@ Here are some predefined candidates:
 FORMAT-STRING is a string specifying the message to output, as in
 `format'.  The OBJECTS arguments specify the substitutions."
   (unless format-string (setq format-string ""))
-  `(when exwm-debug
+  `(when exwm-debug-mode
      (xcb-debug:message ,(concat "%s%s:\t" format-string "\n")
                         (if exwm-debug-log-time-function
                             (funcall exwm-debug-log-time-function)
@@ -285,7 +286,7 @@ One of `line-mode' or `char-mode'.")
   (let ((map (make-sparse-keymap)))
     (define-key map "\C-c\C-d\C-l" #'xcb-debug:clear)
     (define-key map "\C-c\C-d\C-m" #'xcb-debug:mark)
-    (define-key map "\C-c\C-d\C-t" #'exwm-debug)
+    (define-key map "\C-c\C-d\C-t" #'exwm-debug-mode)
     (define-key map "\C-c\C-f" #'exwm-layout-set-fullscreen)
     (define-key map "\C-c\C-h" #'exwm-floating-hide)
     (define-key map "\C-c\C-k" #'exwm-input-release-keyboard)
