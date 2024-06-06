@@ -238,7 +238,9 @@ SERIAL is a sequence number."
   "Initialize the XSETTINGS module."
   (exwm--log)
 
-  (cl-assert (not exwm-xsettings--connection))
+  ;; idempotent initialization
+  (when exwm-xsettings--connection
+    (cl-return-from exwm-xsettings--init))
 
   ;; Connect
   (setq exwm-xsettings--connection (xcb:connect))

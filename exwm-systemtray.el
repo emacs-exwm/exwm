@@ -491,7 +491,9 @@ Argument DATA contains the raw event data."
 (cl-defun exwm-systemtray--init ()
   "Initialize system tray module."
   (exwm--log)
-  (cl-assert (not exwm-systemtray--connection))
+  ;; idempotent initialization
+  (when exwm-systemtray--connection
+    (cl-return-from exwm-systemtray--init))
   (cl-assert (not exwm-systemtray--list))
   (cl-assert (not exwm-systemtray--selection-owner-window))
   (cl-assert (not exwm-systemtray--embedder-window))
