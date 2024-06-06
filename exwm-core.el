@@ -98,15 +98,16 @@ nil: Disable timestamp."
 (declare-function exwm-workspace-switch "exwm-workspace.el"
                   (frame-or-index &optional force))
 
+(defvaralias 'exwm-debug 'exwm-debug-mode) ;; Not obsolete
 (define-minor-mode exwm-debug-mode
   "Debug-logging enabled if non-nil."
   :global t
   :group 'exwm-debug)
-(define-obsolete-function-alias 'exwm-debug 'exwm-debug-mode "0.30")
+(define-obsolete-function-alias 'exwm-debug #'exwm-debug-mode "0.30")
 
 (defmacro exwm--debug (&rest forms)
   "Evaluate FORMS if `exwm-debug-mode' is active."
-  (when exwm-debug-mode `(progn ,@forms)))
+  (when exwm-debug `(progn ,@forms)))
 
 (defmacro exwm--log (&optional format-string &rest objects)
   "Emit a message prepending the name of the function being executed.
@@ -114,7 +115,7 @@ nil: Disable timestamp."
 FORMAT-STRING is a string specifying the message to output, as in
 `format'.  The OBJECTS arguments specify the substitutions."
   (unless format-string (setq format-string ""))
-  `(when exwm-debug-mode
+  `(when exwm-debug
      (xcb-debug:message ,(concat "%s%s:\t" format-string "\n")
                         (if exwm-debug-log-time-function
                             (funcall exwm-debug-log-time-function)
