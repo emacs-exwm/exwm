@@ -21,15 +21,26 @@
 
 ;;; Commentary:
 
-;; This module contains typical (yet minimal) configurations of EXWM.
+;; This module contains an example configuration of EXWM.  Do not require this
+;; file directly in your user configuration.  Instead take it as inspiration and
+;; copy the relevant settings to your user configuration.
 
 ;;; Code:
 
 (require 'exwm)
-(require 'ido)
+
+(defun exwm-config--warn ()
+  "Print obsoletion warning."
+  (fset #'exwm-config--warn #'ignore)
+  (warn "The `exwm-config' file has been deprecated. We do not recommend
+requiring `exwm-config' directly in your Emacs configuration. Instead
+copy and modify the relevant settings to your configuration. The code
+from here will be moved out of the source repository to the manual after
+the next release. See https://github.com/emacs-exwm/exwm/issues/57."))
 
 (defun exwm-config-example ()
   "Default configuration of EXWM."
+  (exwm-config--warn)
   ;; Set the initial workspace number.
   (unless (get 'exwm-workspace-number 'saved-value)
     (setq exwm-workspace-number 4))
@@ -72,14 +83,15 @@
   ;; Enable EXWM
   (exwm-enable)
   ;; Configure Ido
-  (exwm-config-ido)
+  (with-no-warnings (exwm-config-ido))
   ;; Other configurations
-  (exwm-config-misc))
+  (with-no-warnings (exwm-config-misc)))
+(make-obsolete 'exwm-config-example "Copy the relevant settings to your configuration." "0.30")
 
 (defun exwm-config--fix/ido-buffer-window-other-frame ()
   "Fix `ido-buffer-window-other-frame'."
   (defalias 'exwm-config-ido-buffer-window-other-frame
-    (symbol-function #'ido-buffer-window-other-frame))
+    (symbol-function 'ido-buffer-window-other-frame))
   (defun ido-buffer-window-other-frame (buffer)
     "This is a version redefined by EXWM.
 
@@ -110,16 +122,21 @@ You can find the original one at `exwm-config-ido-buffer-window-other-frame'."
 
 (defun exwm-config-ido ()
   "Configure Ido to work with EXWM."
+  (exwm-config--warn)
+  (declare-function ido-mode "ido")
   (ido-mode 1)
   (add-hook 'exwm-init-hook #'exwm-config--fix/ido-buffer-window-other-frame))
+(make-obsolete 'exwm-config-ido "Copy the relevant settings to your configuration." "0.30")
 
 (defun exwm-config-misc ()
   "Other configurations."
+  (exwm-config--warn)
   ;; Make more room
   (menu-bar-mode -1)
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
   (fringe-mode 1))
+(make-obsolete 'exwm-config-misc "Copy the relevant settings to your configuration." "0.30")
 
 
 

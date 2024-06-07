@@ -49,8 +49,8 @@
 ;; 2. In '~/.emacs', add following lines (please modify accordingly):
 ;;
 ;;    (require 'exwm)
-;;    (require 'exwm-config)
-;;    (exwm-config-example)
+;;    (setq exwm-input-global-keys `(([?\s-r] . exwm-reset)))
+;;    (exwm-enable)
 ;;
 ;; 3. Link or copy the file 'xinitrc' to '~/.xinitrc'.
 ;; 4. Launch EXWM in a console (e.g. tty1) with
