@@ -330,7 +330,8 @@ Refresh when any RandR 1.5 monitor changes."
 (cl-defun exwm-randr--init ()
   "Initialize RandR extension and EXWM RandR module."
   (exwm--log)
-  (when exwm-randr--connection (cl-return))
+  (when exwm-randr--connection
+    (cl-return-from exwm-randr--init))
   (setq exwm-randr--connection (xcb:connect))
   (set-process-query-on-exit-flag (slot-value exwm-randr--connection 'process) nil)
   (when (= 0 (slot-value (xcb:get-extension-data exwm-randr--connection 'xcb:randr)
