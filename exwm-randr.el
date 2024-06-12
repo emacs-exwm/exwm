@@ -93,8 +93,8 @@ corresponding monitors whenever the monitors are active.
 
 (defvar exwm-randr--last-timestamp 0 "Used for debouncing events.")
 
-(defvar exwm-randr--prev-screen-change-seqnum nil
-  "The most recent ScreenChangeNotify sequence number.")
+(defvar exwm-randr--prev-screen-change-timestamp 0
+  "The most recent ScreenChangeNotify config change timestamp.")
 
 (defvar exwm-randr--compatibility-mode nil
   "Non-nil when the server does not support RandR 1.5 protocol.")
@@ -291,9 +291,9 @@ Run `exwm-randr-screen-change-hook' (usually user scripts to configure RandR)."
   (exwm--log)
   (let ((evt (make-instance 'xcb:randr:ScreenChangeNotify)))
     (xcb:unmarshal evt data)
-    (let ((seqnum (slot-value evt '~sequence)))
-      (unless (equal seqnum exwm-randr--prev-screen-change-seqnum)
-        (setq exwm-randr--prev-screen-change-seqnum seqnum)
+    (let ((ts (slot-value evt 'config-timestamp)))
+      (unless (equal ts exwm-randr--prev-screen-change-timestamp)
+        (setq exwm-randr--prev-screen-change-timestamp ts)
         (run-hooks 'exwm-randr-screen-change-hook)))))
 
 (defun exwm-randr--on-Notify (data _synthetic)
