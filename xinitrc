@@ -1,3 +1,9 @@
+echo "The xinitrc file has been deprecated. We do not recommend using
+xinitrc directly as is. Instead copy the relevant settings to your
+xsession or xinitrc file and modify them as needed. The code from here
+will be moved out of the source repository to the manual after the
+next release. See https://github.com/emacs-exwm/exwm/issues/57."
+
 # Disable access control for the current user.
 xhost +SI:localuser:$USER
 

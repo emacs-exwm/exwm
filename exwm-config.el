@@ -32,11 +32,11 @@
 (defun exwm-config--warn ()
   "Print obsoletion warning."
   (fset #'exwm-config--warn #'ignore)
-  (warn "The `exwm-config' file has been deprecated. We do not recommend
-requiring `exwm-config' directly in your Emacs configuration. Instead
-copy and modify the relevant settings to your configuration. The code
-from here will be moved out of the source repository to the manual after
-the next release. See https://github.com/emacs-exwm/exwm/issues/57."))
+  (warn "The `exwm-config' file has been deprecated. We do not recommend requiring
+`exwm-config' directly in your Emacs configuration. Instead copy the relevant
+settings to your configuration and modify them as needed. The code from here
+will be moved out of the source repository to the manual after the next
+release. See https://github.com/emacs-exwm/exwm/issues/57."))
 
 (defun exwm-config-example ()
   "Default configuration of EXWM."
