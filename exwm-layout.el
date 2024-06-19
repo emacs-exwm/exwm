@@ -245,17 +245,17 @@ See variable `exwm-layout-auto-iconify'."
       (exwm-input--grab-keyboard exwm--id))))
 
 ;;;###autoload
-(cl-defun exwm-layout-toggle-fullscreen (&optional id)
-  "Toggle fullscreen mode of X window ID."
-  (interactive (list (exwm--buffer->id (window-buffer))))
-  (exwm--log "id=#x%x" (or id 0))
-  (unless (or id (derived-mode-p 'exwm-mode))
-    (cl-return-from exwm-layout-toggle-fullscreen))
-  (when id
-    (with-current-buffer (exwm--id->buffer id)
-      (if (exwm-layout--fullscreen-p)
-          (exwm-layout-unset-fullscreen id)
-        (exwm-layout-set-fullscreen id)))))
+(defun exwm-layout-toggle-fullscreen (&optional id)
+  "Toggle fullscreen mode of X window ID.
+If ID is non-nil, default to ID of `window-buffer'."
+  (interactive)
+  (setq id (or id (exwm--buffer->id (current-buffer))
+               (user-error "Current buffer has no X window ID")))
+  (exwm--log "id=#x%x" id)
+  (with-current-buffer (exwm--id->buffer id)
+    (if (exwm-layout--fullscreen-p)
+        (exwm-layout-unset-fullscreen id)
+      (exwm-layout-set-fullscreen id))))
 
 (defun exwm-layout--other-buffer-predicate (buffer)
   "Return non-nil when the BUFFER may be displayed in selected frame.
