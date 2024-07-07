@@ -26,6 +26,7 @@
 
 ;;; Code:
 
+(require 'compat)
 (require 'kmacro)
 
 (require 'xcb)
