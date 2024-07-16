@@ -211,7 +211,8 @@ See variable `exwm-layout-auto-iconify'."
     (exwm-layout--set-ewmh-state exwm--id)
     (xcb:flush exwm--connection)
     (set-window-dedicated-p (get-buffer-window) t)
-    (exwm-input--release-keyboard exwm--id)))
+    (when (eq 'char-mode exwm--selected-input-mode)
+      (exwm-input--release-keyboard exwm--id))))
 
 ;;;###autoload
 (cl-defun exwm-layout-unset-fullscreen (&optional id)
