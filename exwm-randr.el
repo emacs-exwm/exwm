@@ -305,11 +305,10 @@ Refresh when any CRTC/output changes."
         notify)
     (xcb:unmarshal evt data)
     (with-slots (subCode u) evt
-      (cl-case subCode
-        (xcb:randr:Notify:CrtcChange
-         (setq notify (slot-value u 'cc)))
-        (xcb:randr:Notify:OutputChange
-         (setq notify (slot-value u 'oc))))
+      (cond ((= subCode xcb:randr:Notify:CrtcChange)
+	     (setq notify (slot-value u 'cc)))
+	    ((= subCode xcb:randr:Notify:OutputChange)
+	     (setq notify (slot-value u 'oc))))
       (when notify
         (with-slots (timestamp) notify
           (when (> timestamp exwm-randr--last-timestamp)
