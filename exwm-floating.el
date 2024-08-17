@@ -710,17 +710,28 @@ Float resizing is stopped when TYPE is nil."
                          :height height))
       (when (bufferp buffer-or-id)
         ;; Managed.
-        (setq value-mask (logand value-mask (logior xcb:ConfigWindow:Width
-                                                    xcb:ConfigWindow:Height)))
-        (when (/= 0 value-mask)
-          (with-current-buffer buffer-or-id
+        (with-current-buffer buffer-or-id
+          (let ((resize-value-mask
+                 (logand value-mask (logior xcb:ConfigWindow:Width
+                                            xcb:ConfigWindow:Height)))
+                (move-value-mask
+                 (logand value-mask (logior xcb:ConfigWindow:X
+                                            xcb:ConfigWindow:Y))))
+          (when (/= 0 resize-value-mask)
             (xcb:+request exwm--connection
                 (make-instance 'xcb:ConfigureWindow
                                :window (frame-parameter exwm--floating-frame
                                                         'exwm-outer-id)
                                :value-mask value-mask
                                :width width
-                               :height height)))))
+                               :height height)))
+          (when (/= 0 move-value-mask)
+            (xcb:+request exwm--connection
+                (make-instance 'xcb:ConfigureWindow
+                               :window exwm--id
+                               :value-mask value-mask
+                               :x (+ x exwm-floating-border-width)
+                               :y (+ y exwm-floating-border-width)))))))
       (xcb:flush exwm--connection))))
 
 (defun exwm-floating-move (&optional delta-x delta-y)
