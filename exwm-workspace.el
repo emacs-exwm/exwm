@@ -258,9 +258,9 @@ Show PROMPT to the user if non-nil."
       (if (eq frame exwm-workspace--current)
           ;; Abort the recursive minibuffer if deleting the current workspace.
           (progn
-            (exwm--defer 0 #'delete-frame frame)
+            (exwm--defer 0 #'exwm-workspace-delete frame)
             (abort-recursive-edit))
-        (delete-frame frame)
+        (exwm-workspace-delete frame)
         (exwm-workspace--update-switch-history)
         (goto-history-element (min minibuffer-history-position
                                    (exwm-workspace--count)))))))
@@ -824,6 +824,11 @@ INDEX must not exceed the current number of workspaces."
                      (exwm-workspace--workspace-from-frame-or-index
                       frame-or-index)
                    exwm-workspace--current)))
+      ;; Transfer over any surrogate minibuffers before trying to delete the workspace.
+      (let ((minibuf (minibuffer-window frame))
+            (newminibuf (minibuffer-window (exwm-workspace--get-next-workspace frame))))
+        (dolist (f (filtered-frame-list (lambda (f) (eq (frame-parameter f 'minibuffer) minibuf))))
+          (set-frame-parameter f 'minibuffer newminibuf)))
       (delete-frame frame))))
 
 (defun exwm-workspace--set-desktop (id)
