@@ -722,14 +722,14 @@ Float resizing is stopped when TYPE is nil."
                 (make-instance 'xcb:ConfigureWindow
                                :window (frame-parameter exwm--floating-frame
                                                         'exwm-outer-id)
-                               :value-mask value-mask
+                               :value-mask resize-value-mask
                                :width width
                                :height height)))
           (when (/= 0 move-value-mask)
             (xcb:+request exwm--connection
                 (make-instance 'xcb:ConfigureWindow
                                :window exwm--id
-                               :value-mask value-mask
+                               :value-mask move-value-mask
                                :x (+ x exwm-floating-border-width)
                                :y (+ y exwm-floating-border-width)))))))
       (xcb:flush exwm--connection))))
