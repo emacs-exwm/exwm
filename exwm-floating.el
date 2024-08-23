@@ -351,6 +351,8 @@ If TILED-P is non-nil, set actions for tiled window."
       (set-window-buffer window (current-buffer)) ;this changes current buffer
       (add-hook 'window-configuration-change-hook #'exwm-layout--refresh)
       (set-window-dedicated-p window t)
+      (set-window-parameter window 'split-window
+                            (lambda (&rest _) (user-error "Floating window cannot be split")))
       (exwm-layout--show id window))
     (with-current-buffer (exwm--id->buffer id)
       (if (exwm-layout--iconic-state-p id)
