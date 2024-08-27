@@ -351,6 +351,8 @@ If TILED-P is non-nil, set actions for tiled window."
       (set-window-buffer window (current-buffer)) ;this changes current buffer
       (add-hook 'window-configuration-change-hook #'exwm-layout--refresh)
       (set-window-dedicated-p window t)
+      (set-window-parameter window 'split-window
+                            (lambda (&rest _) (user-error "Floating window cannot be split")))
       (exwm-layout--show id window))
     (with-current-buffer (exwm--id->buffer id)
       (if (exwm-layout--iconic-state-p id)
@@ -710,17 +712,28 @@ Float resizing is stopped when TYPE is nil."
                          :height height))
       (when (bufferp buffer-or-id)
         ;; Managed.
-        (setq value-mask (logand value-mask (logior xcb:ConfigWindow:Width
-                                                    xcb:ConfigWindow:Height)))
-        (when (/= 0 value-mask)
-          (with-current-buffer buffer-or-id
+        (with-current-buffer buffer-or-id
+          (let ((resize-value-mask
+                 (logand value-mask (logior xcb:ConfigWindow:Width
+                                            xcb:ConfigWindow:Height)))
+                (move-value-mask
+                 (logand value-mask (logior xcb:ConfigWindow:X
+                                            xcb:ConfigWindow:Y))))
+          (when (/= 0 resize-value-mask)
             (xcb:+request exwm--connection
                 (make-instance 'xcb:ConfigureWindow
                                :window (frame-parameter exwm--floating-frame
                                                         'exwm-outer-id)
-                               :value-mask value-mask
+                               :value-mask resize-value-mask
                                :width width
-                               :height height)))))
+                               :height height)))
+          (when (/= 0 move-value-mask)
+            (xcb:+request exwm--connection
+                (make-instance 'xcb:ConfigureWindow
+                               :window exwm--id
+                               :value-mask move-value-mask
+                               :x (+ x exwm-floating-border-width)
+                               :y (+ y exwm-floating-border-width)))))))
       (xcb:flush exwm--connection))))
 
 (defun exwm-floating-move (&optional delta-x delta-y)
