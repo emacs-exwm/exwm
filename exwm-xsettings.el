@@ -70,6 +70,7 @@
 
 (defun exwm-xsettings-enable ()
   "Enable EXWM xsettings support."
+  (message "`exwm-xsettings-enable' is obsolete. Use `exwm-xsettings-mode' instead.")
   (exwm-xsettings-mode 1))
 (make-obsolete 'exwm-xsettings-enable "Use `exwm-xsettings-mode' instead." "0.30")
 

@@ -47,6 +47,7 @@
 
 (defun exwm-background-enable ()
   "Enable EXWM background support."
+  (message "`exwm-background-enable' is obsolete. Use `exwm-background-mode' instead.")
   (exwm-background-mode 1))
 (make-obsolete 'exwm-background-enable "Use `exwm-background-mode' instead." "0.30")
 

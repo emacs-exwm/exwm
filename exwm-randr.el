@@ -108,6 +108,7 @@ corresponding monitors whenever the monitors are active.
 
 (defun exwm-randr-enable ()
   "Enable EXWM RandR support."
+  (message "`exwm-randr-enable' is obsolete. Use `exwm-randr-mode' instead.")
   (exwm-randr-mode 1))
 (make-obsolete 'exwm-randr-enable "Use `exwm-randr-mode' instead." "0.30")
 

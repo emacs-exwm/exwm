@@ -805,6 +805,7 @@ Such event would be received when the client window is destroyed."
 
 (defun exwm-xim-enable ()
   "Enable EXWM XIM support."
+  (message "`exwm-xim-enable' is obsolete. Use `exwm-xim-mode' instead.")
   (exwm-xim-mode 1))
 (make-obsolete 'exwm-xim-enable "Use `exwm-xim-mode' instead." "0.30")
 
