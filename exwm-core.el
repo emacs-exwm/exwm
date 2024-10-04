@@ -402,6 +402,8 @@ One of `line-mode' or `char-mode'.")
   ;; Redirect events when executing keyboard macros.
   (push `(executing-kbd-macro . ,exwm--kmacro-map)
         minor-mode-overriding-map-alist)
+  ;; Disable any mode-line position indicators for the buffer, they're nonsensical in exwm-mode.
+  (setq-local mode-line-position nil)
   (setq mode-name '(:eval (exwm--mode-name))
         buffer-read-only t
         cursor-type nil
