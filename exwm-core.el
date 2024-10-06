@@ -411,6 +411,7 @@ One of `line-mode' or `char-mode'.")
         left-fringe-width 0
         right-fringe-width 0
         vertical-scroll-bar nil
+        eldoc-documentation-functions nil
         mode-line-position nil
         mode-line-modified nil
         mode-line-mule-info nil
