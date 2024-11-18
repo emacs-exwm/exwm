@@ -385,6 +385,7 @@ If FRAME is nil, refresh layout of selected frame."
                                     (car-safe (window-prev-buffers window)))))
                   (and
                    prev-buffer
+                   (buffer-live-p prev-buffer)
                    (with-current-buffer prev-buffer
                      (derived-mode-p 'exwm-mode))
                    (push prev-buffer covered-buffers)))))))))
