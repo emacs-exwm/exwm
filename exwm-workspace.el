@@ -134,7 +134,6 @@ Please manually run the hook `exwm-workspace-list-change-hook' afterwards.")
 (defvar exwm-workspace--window-y-offset 0
   "Offset between Emacs first window & outer frame in Y.")
 
-(defvar exwm-input--during-command)
 (defvar exwm-input--event-hook)
 (defvar exwm-layout-show-all-buffers)
 (defvar exwm-manage--desktop)
@@ -1284,7 +1283,7 @@ ALIST is an action alist, as accepted by function `display-buffer'."
     (exwm-workspace--update-minibuffer-height t)
     (exwm-workspace--show-minibuffer)
     (unless (or (not exwm-workspace-display-echo-area-timeout)
-                exwm-input--during-command ;e.g. read-event
+                real-this-command ;e.g. read-event
                 input-method-use-echo-area)
       (setq exwm-workspace--display-echo-area-timer
             (run-with-timer exwm-workspace-display-echo-area-timeout nil

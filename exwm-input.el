@@ -107,9 +107,6 @@ defined in `exwm-mode-map' here."
                                               read-event)
   "Low-level read functions that must be exempted from EXWM input handling.")
 
-(defvar exwm-input--during-command nil
-  "Indicate whether between `pre-command-hook' and `post-command-hook'.")
-
 (defvar exwm-input--global-keys nil "Global key bindings.")
 
 (defvar exwm-input--global-prefix-keys nil
@@ -645,7 +642,6 @@ When non-nil, TEMP-LINE-MODE temporarily puts the window in line mode."
   "Whether EVENT should be passed to Emacs.
 Current buffer must be an `exwm-mode' buffer."
   (or exwm-input-line-mode-passthrough
-      exwm-input--during-command
       ;; Forward the event when there is an incomplete key
       ;; sequence or when the minibuffer is active.
       exwm-input--line-mode-cache
@@ -1015,12 +1011,6 @@ Notes:
          (set symbol value)
          (exwm-input--set-simulation-keys value)))
 
-(defcustom exwm-input-pre-post-command-blacklist '(exit-minibuffer
-                                                   abort-recursive-edit
-                                                   minibuffer-keyboard-quit)
-  "Commands impossible to detect with `post-command-hook'."
-  :type '(repeat function))
-
 (cl-defun exwm-input--read-keys (prompt stop-key)
   "Read keys with PROMPT until STOP-KEY pressed."
   (let ((cursor-in-echo-area t)
@@ -1105,17 +1095,6 @@ One use is to access the keymap bound to KEYS (as prefix keys) in `char-mode'."
                (exwm-input--cache-event key t)
                (exwm-input--unread-event key))
              ',(listify-key-sequence keys)))))
-
-(defun exwm-input--on-pre-command ()
-  "Run in `pre-command-hook'."
-  (unless (or (eq this-command #'exwm-input--noop)
-              (memq this-command exwm-input-pre-post-command-blacklist))
-    (setq exwm-input--during-command t)))
-
-(defun exwm-input--on-post-command ()
-  "Run in `post-command-hook'."
-  (unless (eq this-command #'exwm-input--noop)
-    (setq exwm-input--during-command nil)))
 
 (defun exwm-input--on-minibuffer-setup ()
   "Run in `minibuffer-setup-hook' to grab keyboard if necessary."
@@ -1205,9 +1184,6 @@ One use is to access the keymap bound to KEYS (as prefix keys) in `char-mode'."
   (when mouse-autoselect-window
     (xcb:+event exwm--connection 'xcb:EnterNotify
                 #'exwm-input--on-EnterNotify))
-  ;; Control `exwm-input--during-command'
-  (add-hook 'pre-command-hook #'exwm-input--on-pre-command)
-  (add-hook 'post-command-hook #'exwm-input--on-post-command)
   ;; Grab/Release keyboard when minibuffer/echo becomes active/inactive.
   (add-hook 'minibuffer-setup-hook #'exwm-input--on-minibuffer-setup)
   (add-hook 'minibuffer-exit-hook #'exwm-input--on-minibuffer-exit)
@@ -1231,8 +1207,6 @@ One use is to access the keymap bound to KEYS (as prefix keys) in `char-mode'."
   (dolist (fun exwm-input--passthrough-functions)
     (advice-remove fun #'exwm-input--call-with-passthrough))
   (exwm-input--unset-simulation-keys)
-  (remove-hook 'pre-command-hook #'exwm-input--on-pre-command)
-  (remove-hook 'post-command-hook #'exwm-input--on-post-command)
   (remove-hook 'minibuffer-setup-hook #'exwm-input--on-minibuffer-setup)
   (remove-hook 'minibuffer-exit-hook #'exwm-input--on-minibuffer-exit)
   (when exwm-input--echo-area-timer
