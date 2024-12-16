@@ -306,7 +306,6 @@ One of `line-mode' or `char-mode'.")
         (interactive)
         (cond
          ((or exwm-input-line-mode-passthrough
-              ;; Do not test `exwm-input--during-command'.
               (active-minibuffer-window)
               (memq last-input-event exwm-input--global-prefix-keys)
               (memq last-input-event exwm-input-prefix-keys)
