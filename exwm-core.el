@@ -99,12 +99,11 @@ nil: Disable timestamp."
 (declare-function exwm-workspace-switch "exwm-workspace.el"
                   (frame-or-index &optional force))
 
-(defvaralias 'exwm-debug 'exwm-debug-mode) ;; Not obsolete
+(defvaralias 'exwm-debug 'exwm-debug-mode)
 (define-minor-mode exwm-debug-mode
   "Debug-logging enabled if non-nil."
   :global t
   :group 'exwm-debug)
-(define-obsolete-function-alias 'exwm-debug #'exwm-debug-mode "0.30")
 
 (defmacro exwm--debug (&rest forms)
   "Evaluate FORMS if `exwm-debug-mode' is active."

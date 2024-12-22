@@ -68,12 +68,6 @@
   :group 'exwm-xsettings
   (exwm--global-minor-mode-body xsettings))
 
-(defun exwm-xsettings-enable ()
-  "Enable EXWM xsettings support."
-  (message "`exwm-xsettings-enable' is obsolete. Use `exwm-xsettings-mode' instead.")
-  (exwm-xsettings-mode 1))
-(make-obsolete 'exwm-xsettings-enable "Use `exwm-xsettings-mode' instead." "0.30")
-
 (defun exwm-xsettings--rgba-match (_widget value)
   "Return t if VALUE is a valid RGBA color."
   (and (numberp value) (<= 0 value 1)))

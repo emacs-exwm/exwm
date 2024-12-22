@@ -57,12 +57,6 @@
   :group 'exwm-systemtray
   (exwm--global-minor-mode-body systemtray))
 
-(defun exwm-systemtray-enable ()
-  "Enable EXWM systemtray support."
-  (message "`exwm-systemtray-enable' is obsolete. Use `exwm-systemtray-mode' instead.")
-  (exwm-systemtray-mode 1))
-(make-obsolete 'exwm-systemtray-enable "Use `exwm-systemtray-mode' instead." "0.30")
-
 (defcustom exwm-systemtray-height nil
   "System tray height.
 
