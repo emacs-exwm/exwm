@@ -212,7 +212,6 @@ In a mirroring setup some monitors overlap and should be treated as one."
                                             monitor-alias-alist))))))
     monitor-alias-alist))
 
-;;;###autoload
 (defun exwm-randr-refresh ()
   "Refresh workspaces according to the updated RandR info."
   (interactive)
