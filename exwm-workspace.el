@@ -294,7 +294,6 @@ Show PROMPT to the user if non-nil."
                 sequence ""))
              sequence)))))
 
-;;;###autoload
 (defun exwm-workspace--get-geometry (frame)
   "Return the geometry of frame FRAME."
   (or (frame-parameter frame 'exwm-geometry)
@@ -304,7 +303,6 @@ Show PROMPT to the user if non-nil."
                      :width (x-display-pixel-width)
                      :height (x-display-pixel-height))))
 
-;;;###autoload
 (defun exwm-workspace--current-height ()
   "Return the height of current workspace."
   (let ((geometry (frame-parameter exwm-workspace--current 'exwm-geometry)))
@@ -312,7 +310,6 @@ Show PROMPT to the user if non-nil."
         (slot-value geometry 'height)
       (x-display-pixel-height))))
 
-;;;###autoload
 (defun exwm-workspace--minibuffer-own-frame-p ()
   "Reports whether the minibuffer is displayed in its own frame."
   (memq exwm-workspace-minibuffer-position '(top bottom)))
@@ -560,7 +557,6 @@ PREFIX-DIGITS is a list of the digits introduced so far."
   (goto-history-element (1+ n))
   (exit-minibuffer))
 
-;;;###autoload
 (defun exwm-workspace-switch (frame-or-index &optional force)
   "Switch to workspace FRAME-OR-INDEX (0-based).
 
@@ -692,7 +688,6 @@ When FORCE is true, allow switching to current workspace."
     (funcall exwm-workspace--original-handle-focus-in (list 'focus-in frame))
     (run-hooks 'exwm-workspace-switch-hook)))
 
-;;;###autoload
 (defun exwm-workspace-switch-create (frame-or-index)
   "Switch to workspace FRAME-OR-INDEX creating it first non-existent.
 
@@ -717,7 +712,6 @@ Passing a workspace frame as the first option is for internal use only."
       (run-hooks 'exwm-workspace-list-change-hook))
     (exwm-workspace-switch frame-or-index)))
 
-;;;###autoload
 (defun exwm-workspace-swap (workspace1 workspace2)
   "Interchange position of WORKSPACE1 with that of WORKSPACE2."
   (interactive
@@ -753,7 +747,6 @@ Passing a workspace frame as the first option is for internal use only."
         (exwm-workspace-switch exwm-workspace--current t))
       (run-hooks 'exwm-workspace-list-change-hook))))
 
-;;;###autoload
 (defun exwm-workspace-move (workspace nth)
   "Move WORKSPACE to the NTH position.
 
@@ -800,7 +793,6 @@ before it."
         (exwm-workspace-switch exwm-workspace--current t))
       (run-hooks 'exwm-workspace-list-change-hook))))
 
-;;;###autoload
 (defun exwm-workspace-add (&optional index)
   "Add a workspace as the INDEX-th workspace, or the last one if INDEX is nil.
 
@@ -813,7 +805,6 @@ INDEX must not exceed the current number of workspaces."
       (exwm-workspace-move (make-frame) index)
     (make-frame)))
 
-;;;###autoload
 (defun exwm-workspace-delete (&optional frame-or-index)
   "Delete the workspace FRAME-OR-INDEX."
   (interactive)
@@ -841,7 +832,6 @@ INDEX must not exceed the current number of workspaces."
                          :window id
                          :data desktop)))))
 
-;;;###autoload
 (cl-defun exwm-workspace-move-window (frame-or-index &optional id)
   "Move window ID to workspace FRAME-OR-INDEX."
   (interactive (list
@@ -983,7 +973,6 @@ INDEX must not exceed the current number of workspaces."
         (xcb:flush exwm--connection)))
     (setq exwm-workspace--switch-history-outdated t)))
 
-;;;###autoload
 (defun exwm-workspace-switch-to-buffer (buffer-or-name)
   "Make selected window display BUFFER-OR-NAME."
   (interactive
@@ -1075,7 +1064,6 @@ Please check `exwm-workspace--minibuffer-own-frame-p' first."
   (assq (frame-parameter exwm-workspace--minibuffer 'exwm-container)
         exwm-workspace--id-struts-alist))
 
-;;;###autoload
 (defun exwm-workspace-attach-minibuffer ()
   "Attach the minibuffer making it always visible."
   (interactive)
@@ -1100,7 +1088,6 @@ Please check `exwm-workspace--minibuffer-own-frame-p' first."
       (dolist (f exwm-workspace--list)
         (exwm-workspace--set-fullscreen f)))))
 
-;;;###autoload
 (defun exwm-workspace-detach-minibuffer ()
   "Detach the minibuffer so that it automatically hides."
   (interactive)
@@ -1118,7 +1105,6 @@ Please check `exwm-workspace--minibuffer-own-frame-p' first."
         (exwm-workspace--set-fullscreen f))
       (exwm-workspace--hide-minibuffer))))
 
-;;;###autoload
 (defun exwm-workspace-toggle-minibuffer ()
   "Attach the minibuffer if it's detached, or detach it if it's attached."
   (interactive)

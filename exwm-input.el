@@ -564,7 +564,6 @@ Notes:
          (when exwm--connection
            (exwm-input--update-global-prefix-keys))))
 
-;;;###autoload
 (defun exwm-input-set-key (key command)
   "Set a global KEY binding to COMMAND.
 
@@ -840,7 +839,6 @@ button event."
           (setq exwm--input-mode 'char-mode)
           (run-hooks 'exwm-input-input-mode-change-hook))))))
 
-;;;###autoload
 (defun exwm-input-grab-keyboard (&optional id)
   "Switch to `line-mode`.
 When ID is non-nil, grab key events on its corresponding window."
@@ -852,7 +850,6 @@ When ID is non-nil, grab key events on its corresponding window."
     (exwm-input--grab-keyboard id)
     (exwm-input--update-mode-line id)))
 
-;;;###autoload
 (defun exwm-input-release-keyboard (&optional id)
   "Switch to `char-mode`.
 When ID is non-nil, release keyboard events on its corresponding window."
@@ -864,7 +861,6 @@ When ID is non-nil, release keyboard events on its corresponding window."
     (exwm-input--release-keyboard id)
     (exwm-input--update-mode-line id)))
 
-;;;###autoload
 (defun exwm-input-toggle-keyboard (&optional id)
   "Toggle between `line-mode' and `char-mode'.
 When ID is non-nil, toggle in its correpsonding window."
@@ -908,7 +904,6 @@ When ID is non-nil, toggle in its correpsonding window."
                                    exwm--connection)))))
     (xcb:flush exwm--connection)))
 
-;;;###autoload
 (cl-defun exwm-input-send-next-key (n &optional end-key)
   "Send next N keys to client window.
 N is currently capped at 12.
@@ -1024,7 +1019,6 @@ Notes:
     (when (> (length keys) 1)
       (substring keys 0 -1))))
 
-;;;###autoload
 (defun exwm-input-set-simulation-key (original-key simulated-key)
   "Set ORIGINAL-KEY to  SIMULATED-KEY.
 
@@ -1068,7 +1062,6 @@ where both ORIGINAL-KEY and SIMULATED-KEY are key sequences."
   (let ((exwm-input--local-simulation-keys t))
     (exwm-input--set-simulation-keys simulation-keys)))
 
-;;;###autoload
 (cl-defun exwm-input-send-simulation-key (n)
   "Fake N key events according to the last input key sequence."
   (interactive "p")
@@ -1081,7 +1074,6 @@ where both ORIGINAL-KEY and SIMULATED-KEY are key sequences."
       (dolist (key keys)
         (exwm-input--fake-key key)))))
 
-;;;###autoload
 (defmacro exwm-input-invoke-factory (keys)
   "Make a command that invokes KEYS when called.
 

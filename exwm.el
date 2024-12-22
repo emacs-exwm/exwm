@@ -141,7 +141,6 @@ Set during `exwm-init'.")
       (exwm-layout--refresh)
       (call-interactively #'exwm-input-grab-keyboard))))
 
-;;;###autoload
 (defun exwm-restart ()
   "Restart EXWM."
   (interactive)
@@ -909,7 +908,6 @@ manager.  If t, replace it, if nil, abort and ask the user if `ask'."
         (xcb:+request exwm--connection se))
       (setq exwm--wmsn-window new-owner))))
 
-;;;###autoload
 (cl-defun exwm-init (&optional frame)
   "Initialize EXWM.
 FRAME, if given, indicates the X display EXWM should manage."
@@ -987,7 +985,6 @@ FRAME, if given, indicates the X display EXWM should manage."
      (warn "[EXWM] EXWM fails to start (%s: %s)" (car err) (cdr err)))))
 
 
-;;;###autoload
 (defun exwm-exit ()
   "Exit EXWM."
   (interactive)

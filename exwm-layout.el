@@ -187,7 +187,6 @@ See variable `exwm-layout-auto-iconify'."
       (exwm-layout--auto-iconify)
       (xcb:flush exwm--connection))))
 
-;;;###autoload
 (cl-defun exwm-layout-set-fullscreen (&optional id)
   "Make window ID fullscreen."
   (interactive)
@@ -213,7 +212,6 @@ See variable `exwm-layout-auto-iconify'."
     (set-window-dedicated-p (get-buffer-window) t)
     (exwm-input--release-keyboard exwm--id)))
 
-;;;###autoload
 (cl-defun exwm-layout-unset-fullscreen (&optional id)
   "Restore X window ID from fullscreen state."
   (interactive)
@@ -244,7 +242,6 @@ See variable `exwm-layout-auto-iconify'."
     (when (eq 'line-mode exwm--selected-input-mode)
       (exwm-input--grab-keyboard exwm--id))))
 
-;;;###autoload
 (defun exwm-layout-toggle-fullscreen (&optional id)
   "Toggle fullscreen mode of X window ID.
 If ID is non-nil, default to ID of `window-buffer'."
@@ -434,7 +431,6 @@ If DIRTY is non-nil, refresh layout immediately."
           (exwm-layout--refresh exwm-workspace--current)
         (exwm--defer 0 #'exwm-layout--refresh exwm-workspace--current)))))
 
-;;;###autoload
 (defun exwm-layout-enlarge-window (delta &optional horizontal)
   "Make the selected window DELTA pixels taller.
 
@@ -524,7 +520,6 @@ windows."
                            :height height))
         (xcb:flush exwm--connection))))))
 
-;;;###autoload
 (defun exwm-layout-enlarge-window-horizontally (delta)
   "Make the selected window DELTA pixels wider.
 
@@ -533,7 +528,6 @@ See also `exwm-layout-enlarge-window'."
   (exwm--log "%s" delta)
   (exwm-layout-enlarge-window delta t))
 
-;;;###autoload
 (defun exwm-layout-shrink-window (delta)
   "Make the selected window DELTA pixels lower.
 
@@ -542,7 +536,6 @@ See also `exwm-layout-enlarge-window'."
   (exwm--log "%s" delta)
   (exwm-layout-enlarge-window (- delta)))
 
-;;;###autoload
 (defun exwm-layout-shrink-window-horizontally (delta)
   "Make the selected window DELTA pixels narrower.
 
@@ -551,7 +544,6 @@ See also `exwm-layout-enlarge-window'."
   (exwm--log "%s" delta)
   (exwm-layout-enlarge-window (- delta) t))
 
-;;;###autoload
 (defun exwm-layout-hide-mode-line ()
   "Hide mode-line."
   (interactive)
@@ -570,7 +562,6 @@ See also `exwm-layout-enlarge-window'."
                              mode-line-height)
                           nil t)))))
 
-;;;###autoload
 (defun exwm-layout-show-mode-line ()
   "Show mode-line."
   (interactive)
@@ -588,7 +579,6 @@ See also `exwm-layout-enlarge-window'."
       (call-interactively #'exwm-input-grab-keyboard))
     (force-mode-line-update)))
 
-;;;###autoload
 (defun exwm-layout-toggle-mode-line ()
   "Toggle the display of mode-line."
   (interactive)
