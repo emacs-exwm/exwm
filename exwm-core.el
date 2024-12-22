@@ -436,8 +436,5 @@ immediately enabled or disabled."
          (remove-hook 'exwm-exit-hook #',exit)
          (when exwm--connection (,exit)))))))
 
-
-
 (provide 'exwm-core)
-
 ;;; exwm-core.el ends here

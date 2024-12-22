@@ -1225,8 +1225,5 @@ One use is to access the keymap bound to KEYS (as prefix keys) in `char-mode'."
                        :time xcb:Time:CurrentTime))
     (xcb:flush exwm--connection)))
 
-
-
 (provide 'exwm-input)
-
 ;;; exwm-input.el ends here

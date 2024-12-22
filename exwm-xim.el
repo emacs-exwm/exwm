@@ -803,8 +803,5 @@ Such event would be received when the client window is destroyed."
   :group 'exwm
   (exwm--global-minor-mode-body xim))
 
-
-
 (provide 'exwm-xim)
-
 ;;; exwm-xim.el ends here

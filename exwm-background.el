@@ -201,5 +201,4 @@ may kill this connection when they replace it.")
         exwm-background--atoms nil))
 
 (provide 'exwm-background)
-
 ;;; exwm-background.el ends here

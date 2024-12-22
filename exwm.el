@@ -1139,8 +1139,5 @@ If FORCE is any other non-nil value, force killing of Emacs."
     ;; Set the return value.
     t))
 
-
-
 (provide 'exwm)
-
 ;;; exwm.el ends here

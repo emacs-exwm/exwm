@@ -1763,8 +1763,5 @@ applied to all subsequently created X frames."
       (accept-process-output nil 0.1)))
   (setq exwm-workspace--fullscreen-frame-count nil))
 
-
-
 (provide 'exwm-workspace)
-
 ;;; exwm-workspace.el ends here

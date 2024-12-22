@@ -381,8 +381,5 @@ Refresh when any RandR 1.5 monitor changes."
     (xcb:disconnect exwm-randr--connection)
     (setq exwm-randr--connection nil)))
 
-
-
 (provide 'exwm-randr)
-
 ;;; exwm-randr.el ends here

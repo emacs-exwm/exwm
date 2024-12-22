@@ -826,8 +826,5 @@ SYNTHETIC indicates whether the event is a synthetic event."
   (remove-hook 'delete-frame-functions #'exwm-manage--remove-frame)
   (setq exwm-manage--_MOTIF_WM_HINTS nil))
 
-
-
 (provide 'exwm-manage)
-
 ;;; exwm-manage.el ends here

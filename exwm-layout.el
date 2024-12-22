@@ -622,8 +622,5 @@ See also `exwm-layout-enlarge-window'."
     (setq exwm-layout--timer nil))
   (remove-hook 'echo-area-clear-hook #'exwm-layout--on-echo-area-change))
 
-
-
 (provide 'exwm-layout)
-
 ;;; exwm-layout.el ends here

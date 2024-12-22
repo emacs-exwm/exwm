@@ -320,5 +320,4 @@ SERIAL is a sequence number."
           exwm-xsettings--selection-owner-window nil)))
 
 (provide 'exwm-xsettings)
-
 ;;; exwm-xsettings.el ends here

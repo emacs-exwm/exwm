@@ -689,8 +689,5 @@ Argument DATA contains the raw event data."
     (when (boundp 'exwm-randr-refresh-hook)
       (remove-hook 'exwm-randr-refresh-hook #'exwm-systemtray--refresh-all))))
 
-
-
 (provide 'exwm-systemtray)
-
 ;;; exwm-systemtray.el ends here

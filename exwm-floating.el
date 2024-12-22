@@ -789,8 +789,5 @@ Both DELTA-X and DELTA-Y default to 1.  This command should be bound locally."
   "Exit the floating module."
   (exwm--log))
 
-
-
 (provide 'exwm-floating)
-
 ;;; exwm-floating.el ends here
