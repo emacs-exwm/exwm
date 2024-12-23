@@ -342,7 +342,7 @@ Show PROMPT to the user if non-nil."
          ;; Get workareas prior to struts.
          (workareas (mapcar
                      (lambda (frame)
-                       (if-let (rect (frame-parameter frame 'exwm-geometry))
+                       (if-let* ((rect (frame-parameter frame 'exwm-geometry)))
                            ;; Use the 'exwm-geometry' frame parameter if it
                            ;; exists.  Make sure to clone it, will be modified
                            ;; below!
