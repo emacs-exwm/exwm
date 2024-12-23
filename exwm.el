@@ -1023,7 +1023,8 @@ Optional argument UNDO may be either of the following symbols:
        (advice-remove i #'exwm--server-eval-at)))
     (_                                  ;enable EXWM
      (setq frame-resize-pixelwise t     ;mandatory; before init
-           window-resize-pixelwise t)
+           window-resize-pixelwise t
+           x-no-window-manager t)
      ;; Ignore unrecognized command line arguments.  This can be helpful
      ;; when EXWM is launched by some session manager.
      (push #'vector command-line-functions)
