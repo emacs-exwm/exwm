@@ -283,40 +283,38 @@ One of `line-mode' or `char-mode'.")
 ;; _MOTIF_WM_HINTS
 (defvar-local exwm--mwm-hints-decorations t)
 
-(defvar exwm-mode-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map "\C-c\C-d\C-l" #'xcb-debug:clear)
-    (define-key map "\C-c\C-d\C-m" #'xcb-debug:mark)
-    (define-key map "\C-c\C-d\C-t" #'exwm-debug-mode)
-    (define-key map "\C-c\C-f" #'exwm-layout-set-fullscreen)
-    (define-key map "\C-c\C-h" #'exwm-floating-hide)
-    (define-key map "\C-c\C-k" #'exwm-input-release-keyboard)
-    (define-key map "\C-c\C-m" #'exwm-workspace-move-window)
-    (define-key map "\C-c\C-q" #'exwm-input-send-next-key)
-    (define-key map "\C-c\C-t\C-f" #'exwm-floating-toggle-floating)
-    (define-key map "\C-c\C-t\C-m" #'exwm-layout-toggle-mode-line)
-    map)
-  "Keymap for `exwm-mode'.")
+(defvar-keymap exwm-mode-map
+  :doc "Keymap for `exwm-mode'."
+  "C-c C-d C-l" #'xcb-debug:clear
+  "C-c C-d C-m" #'xcb-debug:mark
+  "C-c C-d C-t" #'exwm-debug-mode
+  "C-c C-f" #'exwm-layout-set-fullscreen
+  "C-c C-h" #'exwm-floating-hide
+  "C-c C-k" #'exwm-input-release-keyboard
+  "C-c C-m" #'exwm-workspace-move-window
+  "C-c C-q" #'exwm-input-send-next-key
+  "C-c C-t C-f" #'exwm-floating-toggle-floating
+  "C-c C-t C-m" #'exwm-layout-toggle-mode-line)
 
-(defvar exwm--kmacro-map
-  (let ((map (make-sparse-keymap)))
-    (define-key map [t]
-      (lambda ()
-        (interactive)
-        (cond
-         ((or exwm-input-line-mode-passthrough
-              (active-minibuffer-window)
-              (memq last-input-event exwm-input--global-prefix-keys)
-              (memq last-input-event exwm-input-prefix-keys)
-              (lookup-key exwm-mode-map (vector last-input-event))
-              (gethash last-input-event exwm-input--simulation-keys))
-          (set-transient-map (make-composed-keymap (list exwm-mode-map
-                                                         global-map)))
-          (push last-input-event unread-command-events))
-         (t
-          (exwm-input--fake-key last-input-event)))))
-    map)
-  "Keymap used when executing keyboard macros.")
+(defun exwm--kmacro-self-insert-command ()
+  "The EXWM kmacro equivalent of `self-insert-command'."
+  (interactive)
+  (cond
+   ((or exwm-input-line-mode-passthrough
+        (active-minibuffer-window)
+        (memq last-input-event exwm-input--global-prefix-keys)
+        (memq last-input-event exwm-input-prefix-keys)
+        (lookup-key exwm-mode-map (vector last-input-event))
+        (gethash last-input-event exwm-input--simulation-keys))
+    (set-transient-map (make-composed-keymap (list exwm-mode-map global-map)))
+    (push last-input-event unread-command-events))
+   (t
+    (exwm-input--fake-key last-input-event))))
+(put 'exwm--kmacro-self-insert-command 'completion-predicate #'ignore)
+
+(defvar-keymap exwm--kmacro-map
+  :doc "Keymap used when executing keyboard macros."
+  "<t>" #'exwm--kmacro-self-insert-command)
 
 ;; This menu mainly acts as an reminder for users.  Thus it should be as
 ;; detailed as possible, even some entries do not make much sense here.
