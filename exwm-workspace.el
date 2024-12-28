@@ -175,12 +175,12 @@ FRAME may be either a workspace frame or a workspace position."
 (defun exwm-workspace--init-switch-map ()
   "Initialize variable `exwm-workspace--switch-map'."
   (let ((map (make-sparse-keymap)))
-    (define-key map [t] (lambda () (interactive)))
-    (define-key map "+" #'exwm-workspace--prompt-add)
-    (define-key map "-" #'exwm-workspace--prompt-delete)
+    (keymap-set map "<t>" #'ignore)
+    (keymap-set map "+" #'exwm-workspace--prompt-add)
+    (keymap-set map "-" #'exwm-workspace--prompt-delete)
     (dotimes (i 10)
-      (define-key map (int-to-string i)
-        #'exwm-workspace--switch-map-nth-prefix))
+      (keymap-set map (int-to-string i)
+                  #'exwm-workspace--switch-map-nth-prefix))
     (unless (eq exwm-workspace-index-map #'number-to-string)
       ;; Add extra (and possibly override) keys for selecting workspace.
       (dotimes (i 10)
@@ -188,25 +188,25 @@ FRAME may be either a workspace frame or a workspace position."
           (when (and (stringp key)
                      (= (length key) 1)
                      (<= 0 (elt key 0) 127))
-            (define-key map key
-              (lambda ()
-                (interactive)
-                (exwm-workspace--switch-map-select-nth i)))))))
-    (define-key map "\C-a" (lambda () (interactive) (goto-history-element 1)))
-    (define-key map "\C-e" (lambda ()
-                             (interactive)
-                             (goto-history-element (exwm-workspace--count))))
-    (define-key map "\C-g" #'abort-recursive-edit)
-    (define-key map "\C-]" #'abort-recursive-edit)
-    (define-key map "\C-j" #'exit-minibuffer)
-    ;; (define-key map "\C-m" #'exit-minibuffer) ;not working
-    (define-key map [return] #'exit-minibuffer)
-    (define-key map " " #'exit-minibuffer)
-    (define-key map "\C-f" #'previous-history-element)
-    (define-key map "\C-b" #'next-history-element)
+            (keymap-set map key
+                        (lambda ()
+                          (interactive)
+                          (exwm-workspace--switch-map-select-nth i)))))))
+    (keymap-set map "C-a" (lambda () (interactive) (goto-history-element 1)))
+    (keymap-set map "C-e" (lambda ()
+                            (interactive)
+                            (goto-history-element (exwm-workspace--count))))
+    (keymap-set map "C-g" #'abort-recursive-edit)
+    (keymap-set map "C-]" #'abort-recursive-edit)
+    (keymap-set map "C-j" #'exit-minibuffer)
+    ;; (keymap-set map "\C-m" #'exit-minibuffer) ;not working
+    (keymap-set map "<return>" #'exit-minibuffer)
+    (keymap-set map "<space>" #'exit-minibuffer)
+    (keymap-set map "C-f" #'previous-history-element)
+    (keymap-set map "C-b" #'next-history-element)
     ;; Alternative keys
-    (define-key map [right] #'previous-history-element)
-    (define-key map [left] #'next-history-element)
+    (keymap-set map "<right>" #'previous-history-element)
+    (keymap-set map "<left>" #'next-history-element)
     (setq exwm-workspace--switch-map map)))
 
 (defun exwm-workspace--workspace-from-frame-or-index (frame-or-index)
@@ -543,9 +543,9 @@ PREFIX-DIGITS is a list of the digits introduced so far."
                      (interactive)
                      (exwm-workspace--switch-map-nth-prefix digits)))))
          (dotimes (i 10)
-           (define-key map (int-to-string i) cmd))
+           (keymap-set map (int-to-string i) cmd))
          ;; Accept
-         (define-key map [return]
+         (keymap-set map "<return>"
            (lambda ()
              (interactive)
              (exwm-workspace--switch-map-select-nth n)))
