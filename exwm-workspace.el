@@ -54,11 +54,35 @@ This happens when a workspace is added, deleted, moved, etc."
   "Initial number of workspaces."
   :type 'integer)
 
+(defvar exwm-workspace--switch-history nil
+  "History for `read-from-minibuffer' to interactively switch workspace.")
+
+(defvar exwm-workspace--switch-history-outdated nil
+  "Non-nil to indicate `exwm-workspace--switch-history' is outdated.")
+
+(defvar exwm-workspace--switch-by-index-map
+  (let ((map (make-sparse-keymap)))
+    (dotimes (i 10)
+      (keymap-set map (int-to-string i)
+                  #'exwm-workspace--switch-map-nth-prefix))
+    map)
+  "Keymap used to switch workspaces by index.")
+
+(defvar exwm-workspace--switch-by-name-map (make-sparse-keymap)
+  "Keymap used to switch workspaces by index.
+Applicable when the name returned by `exwm-workspace-index-map' is also
+a valid key.")
+
 (defcustom exwm-workspace-index-map #'number-to-string
   "Function for mapping a workspace index to a string for display.
 
 By default `number-to-string' is applied which yields 0 1 2 ... ."
-  :type 'function)
+  :type 'function
+  :initialize 'custom-initialize-changed
+  :set (lambda (symbol value)
+         (set-default-toplevel-value symbol value)
+         (setq exwm-workspace--switch-history-outdated t)
+         (exwm-workspace--update-switch-by-name-map)))
 
 (defcustom exwm-workspace-minibuffer-position nil
   "Position of the minibuffer frame.
@@ -116,12 +140,6 @@ Please manually run the hook `exwm-workspace-list-change-hook' afterwards.")
 
 (defvar exwm-workspace--struts nil "Areas occupied by struts.")
 
-(defvar exwm-workspace--switch-history nil
-  "History for `read-from-minibuffer' to interactively switch workspace.")
-
-(defvar exwm-workspace--switch-history-outdated nil
-  "Non-nil to indicate `exwm-workspace--switch-history' is outdated.")
-
 (defvar exwm-workspace--timer nil "Timer used to track echo area changes.")
 
 (defvar exwm-workspace--update-workareas-hook nil
@@ -169,45 +187,30 @@ FRAME may be either a workspace frame or a workspace position."
            frame
          (exwm-workspace--position frame))))
 
-(defvar exwm-workspace--switch-map nil
-  "Keymap used for interactively selecting workspace.")
+(defvar-keymap exwm-workspace-switch-map
+  :doc "Keymap used by `exwm-workspace-switch'."
+  "+" #'exwm-workspace--prompt-add
+  "-" #'exwm-workspace--prompt-delete
+  "C-a" (lambda () (interactive) (goto-history-element 1))
+  "C-e" (lambda () (interactive) (goto-history-element (exwm-workspace--count)))
+  "C-g" #'abort-recursive-edit
+  "C-]" #'abort-recursive-edit
+  "C-j" #'exit-minibuffer
+  "<return>" #'exit-minibuffer
+  "<space>" #'exit-minibuffer
+  "C-f" #'previous-history-element
+  "C-b" #'next-history-element
+  ;; Alternative keys
+  "<right>" #'previous-history-element
+  "<left>" #'next-history-element)
 
-(defun exwm-workspace--init-switch-map ()
-  "Initialize variable `exwm-workspace--switch-map'."
-  (let ((map (make-sparse-keymap)))
-    (keymap-set map "<t>" #'ignore)
-    (keymap-set map "+" #'exwm-workspace--prompt-add)
-    (keymap-set map "-" #'exwm-workspace--prompt-delete)
-    (dotimes (i 10)
-      (keymap-set map (int-to-string i)
-                  #'exwm-workspace--switch-map-nth-prefix))
-    (unless (eq exwm-workspace-index-map #'number-to-string)
-      ;; Add extra (and possibly override) keys for selecting workspace.
-      (dotimes (i 10)
-        (let ((key (funcall exwm-workspace-index-map i)))
-          (when (and (stringp key)
-                     (= (length key) 1)
-                     (<= 0 (elt key 0) 127))
-            (keymap-set map key
-                        (lambda ()
-                          (interactive)
-                          (exwm-workspace--switch-map-select-nth i)))))))
-    (keymap-set map "C-a" (lambda () (interactive) (goto-history-element 1)))
-    (keymap-set map "C-e" (lambda ()
-                            (interactive)
-                            (goto-history-element (exwm-workspace--count))))
-    (keymap-set map "C-g" #'abort-recursive-edit)
-    (keymap-set map "C-]" #'abort-recursive-edit)
-    (keymap-set map "C-j" #'exit-minibuffer)
-    ;; (keymap-set map "\C-m" #'exit-minibuffer) ;not working
-    (keymap-set map "<return>" #'exit-minibuffer)
-    (keymap-set map "<space>" #'exit-minibuffer)
-    (keymap-set map "C-f" #'previous-history-element)
-    (keymap-set map "C-b" #'next-history-element)
-    ;; Alternative keys
-    (keymap-set map "<right>" #'previous-history-element)
-    (keymap-set map "<left>" #'next-history-element)
-    (setq exwm-workspace--switch-map map)))
+(defvar exwm-workspace--switch-composed-map
+  (make-composed-keymap (list
+                         exwm-workspace-switch-map
+                         exwm-workspace--switch-by-name-map
+                         exwm-workspace--switch-by-index-map)
+                        (define-keymap "<t>" #'undefined))
+  "Internal Keymap composing all the keymaps used by `exwm-workspace-switch'.")
 
 (defun exwm-workspace--workspace-from-frame-or-index (frame-or-index)
   "Retrieve the workspace frame from FRAME-OR-INDEX."
@@ -232,7 +235,7 @@ Show PROMPT to the user if non-nil."
          (history-idx (read-from-minibuffer
                        (or prompt "Workspace: ")
                        (elt exwm-workspace--switch-history current-idx)
-                       exwm-workspace--switch-map nil
+                       exwm-workspace--switch-composed-map nil
                        `(exwm-workspace--switch-history . ,(1+ current-idx))))
          (workspace-idx (cl-position history-idx exwm-workspace--switch-history
                                      :test #'equal)))
@@ -293,6 +296,20 @@ Show PROMPT to the user if non-nil."
                                  (t nil)))))
                 sequence ""))
              sequence)))))
+
+(defun exwm-workspace--update-switch-by-name-map ()
+  "Updates `exwm-workspace--switch-by-name-map'."
+  (setcdr exwm-workspace--switch-by-name-map nil)
+  (unless (eq exwm-workspace-index-map #'number-to-string)
+    (dotimes (i 10)
+      (let ((key (funcall exwm-workspace-index-map i)))
+        (when (and (stringp key)
+                   (length= key 1)
+                   (<= 0 (elt key 0) 127))
+          (keymap-set exwm-workspace--switch-by-name-map key
+                      (lambda ()
+                        (interactive)
+                        (exwm-workspace--switch-map-select-nth i))))))))
 
 (defun exwm-workspace--get-geometry (frame)
   "Return the geometry of frame FRAME."
@@ -1650,7 +1667,10 @@ applied to all subsequently created X frames."
 (defun exwm-workspace--init ()
   "Initialize workspace module."
   (exwm--log)
-  (exwm-workspace--init-switch-map)
+  ;; Re-initialize the workspace switch-by-name map just in case
+  ;; the user customized it via setq instead of setopt. This preserves
+  ;; existing behavior and doesn't really add any complexity.
+  (exwm-workspace--update-switch-by-name-map)
   ;; Prevent unexpected exit
   (setq exwm-workspace--fullscreen-frame-count 0)
   (exwm-workspace--modify-all-x-frames-parameters
