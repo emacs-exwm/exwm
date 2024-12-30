@@ -57,6 +57,8 @@
   "RandR."
   :group 'exwm)
 
+(defvar exwm-randr--connection nil "The X connection.")
+
 (defcustom exwm-randr-refresh-hook nil
   "Normal hook run when the RandR module just refreshed."
   :type 'hook)
@@ -86,8 +88,18 @@ setting workspace other than 1 and 3 would always be displayed on the
 primary monitor where workspace 1 and 3 would be displayed on their
 corresponding monitors whenever the monitors are active.
 
+Changes to this variable only take immediate affect when set before
+`exwm-randr-mode' is enabled, via `setopt', or when customized (see the
+Info node `Customization'). Otherwise, the `exwm-randr-refresh' must be
+called explicitly to assign the correct workspaces to the correct monitors.
+
   \\='(1 \"HDMI-1\" 3 \"DP-1\")"
-  :type '(plist :key-type integer :value-type string))
+  :type '(plist :key-type integer :value-type string)
+  :initialize 'custom-initialize-changed
+  :set (lambda (symbol value)
+         (set-default-toplevel-value symbol value)
+         (when exwm-randr--connection
+           (exwm-randr-refresh))))
 
 (defvar exwm-randr--connection nil "The X connection.")
 
