@@ -373,23 +373,25 @@ attempt later."
                                      window)
                 (exwm--defer 0 #'exwm-workspace-switch (selected-frame)))
             ;; The focus is still on the current workspace.
-            (if (not (and (exwm-workspace--minibuffer-own-frame-p)
-                          (minibufferp)))
-                (x-focus-frame (window-frame window))
-              ;; X input focus should be set on the previously selected
-              ;; frame.
-              (x-focus-frame (window-frame (minibuffer-window))))
-            (exwm-input--set-active-window)
+            (let ((frame (if (not (and (exwm-workspace--minibuffer-own-frame-p)
+                                       (minibufferp)))
+                             (window-frame window)
+                           ;; X input focus should be set on the previously
+                           ;; selected frame.
+                           (window-frame (minibuffer-window)))))
+              (x-focus-frame frame)
+              (exwm-input--set-active-window
+               (or (frame-parameter exwm-workspace--current 'exwm-outer-id)
+                   xcb:Window:None)))
             (xcb:flush exwm--connection)))))))
 
-(defun exwm-input--set-active-window (&optional id)
-  "Set _NET_ACTIVE_WINDOW.
-When non-nil, ID is passed as the window data."
+(defun exwm-input--set-active-window (id)
+  "Set _NET_ACTIVE_WINDOW to ID."
   (exwm--log)
   (xcb:+request exwm--connection
       (make-instance 'xcb:ewmh:set-_NET_ACTIVE_WINDOW
                      :window exwm--root
-                     :data (or id xcb:Window:None))))
+                     :data id)))
 
 (defun exwm-input--on-ButtonPress (data _synthetic)
   "Handle ButtonPress event with DATA."
