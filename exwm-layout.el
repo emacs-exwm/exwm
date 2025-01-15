@@ -142,6 +142,11 @@ See variable `exwm-layout-auto-iconify'."
                 y y*
                 width width*
                 height height*)))
+      (when (and (not (bound-and-true-p centaur-tabs-local-mode))
+                 (not (exwm-layout--fullscreen-p))
+                 (or (bound-and-true-p centaur-tabs-mode)
+                     (bound-and-true-p tab-line-mode)))
+        (setq y (+ y centaur-tabs-height)))
       (exwm--set-geometry id x y width height)
       (xcb:+request exwm--connection (make-instance 'xcb:MapWindow :window id))
       (exwm-layout--set-state id xcb:icccm:WM_STATE:NormalState)
