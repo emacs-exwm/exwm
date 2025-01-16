@@ -117,6 +117,8 @@ See variable `exwm-layout-auto-iconify'."
          (width (- (pop edges) x))
          (height (- (pop edges) y))
          frame-x frame-y frame-width frame-height)
+    (when (eval-when-compile (< emacs-major-version 31))
+      (setq y (+ y (window-tab-line-height window))))
     (with-current-buffer (exwm--id->buffer id)
       (when exwm--floating-frame
         (setq frame-width (frame-pixel-width exwm--floating-frame)
