@@ -4,7 +4,7 @@
 
 ;; Author: Chris Feng <chris.w.feng@gmail.com>
 ;; Maintainer: Adrián Medraño Calvo <adrian@medranocalvo.com>, Steven Allen <steven@stebalien.com>, Daniel Mendler <mail@daniel-mendler.de>
-;; Version: 0.32
+;; Version: 0.33
 ;; Package-Requires: ((emacs "27.1") (xelb "0.20") (compat "30"))
 ;; Keywords: unix
 ;; URL: https://github.com/emacs-exwm/exwm
