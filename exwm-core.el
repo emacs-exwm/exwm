@@ -398,20 +398,19 @@ One of `line-mode' or `char-mode'.")
   ;; Redirect events when executing keyboard macros.
   (push `(executing-kbd-macro . ,exwm--kmacro-map)
         minor-mode-overriding-map-alist)
-  (make-local-variable 'mode-line-position)
-  (setq mode-name '(:eval (exwm--mode-name))
-        buffer-read-only t
-        cursor-type nil
-        left-margin-width nil
-        right-margin-width nil
-        left-fringe-width 0
-        right-fringe-width 0
-        vertical-scroll-bar nil
-        eldoc-documentation-functions nil
-        mode-line-position nil
-        mode-line-modified nil
-        mode-line-mule-info nil
-        mode-line-remote nil))
+  (setq-local mode-name '(:eval (exwm--mode-name))
+              buffer-read-only t
+              cursor-type nil
+              left-margin-width nil
+              right-margin-width nil
+              left-fringe-width 0
+              right-fringe-width 0
+              vertical-scroll-bar nil
+              eldoc-documentation-functions nil
+              mode-line-position nil
+              mode-line-modified nil
+              mode-line-mule-info nil
+              mode-line-remote nil))
 
 (defmacro exwm--global-minor-mode-body (name &optional init exit)
   "Global minor mode body for mode with NAME.
