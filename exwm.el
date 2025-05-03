@@ -1112,7 +1112,7 @@ If FORCE is any other non-nil value, force killing of Emacs."
          ((and force (not (eq force 'no-check)))
           ;; Force killing Emacs.
           t)
-         ((or (eq force 'no-check) (not exwm--id-buffer-alist))
+         ((eq force 'no-check)
           ;; Check if there's any unsaved file.
           (pcase (catch 'break
                    (let ((kill-emacs-query-functions
@@ -1123,8 +1123,9 @@ If FORCE is any other non-nil value, force killing of Emacs."
             (`break (y-or-n-p prompt))
             (x x)))
          (t
-          (yes-or-no-p (format "[EXWM] %d X window(s) will be destroyed.  %s?"
-                               (length exwm--id-buffer-alist) prompt))))
+          (or (not exwm--id-buffer-alist)
+	      (yes-or-no-p (format "[EXWM] %d X window(s) will be destroyed.  %s?"
+				   (length exwm--id-buffer-alist) prompt)))))
     ;; Run `kill-emacs-hook' (`server-force-stop' excluded) before Emacs
     ;; frames are unmapped so that errors (if any) can be visible.
     (if (memq #'server-force-stop kill-emacs-hook)
