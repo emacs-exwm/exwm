@@ -322,30 +322,22 @@ One of `line-mode' or `char-mode'.")
 (easy-menu-define exwm-mode-menu exwm-mode-map
   "Menu for `exwm-mode'."
   `("EXWM"
-    "---"
-    "*General*"
-    "---"
-    ["Toggle floating" exwm-floating-toggle-floating]
-    ["Toggle fullscreen mode" exwm-layout-toggle-fullscreen]
-    ["Hide window" exwm-floating-hide exwm--floating-frame]
-    ["Close window" (kill-buffer (current-buffer))]
-
-    "---"
-    "*Resizing*"
-    "---"
-    ["Toggle mode-line" exwm-layout-toggle-mode-line]
-    ["Enlarge window vertically" exwm-layout-enlarge-window]
-    ["Enlarge window horizontally" exwm-layout-enlarge-window-horizontally]
-    ["Shrink window vertically" exwm-layout-shrink-window]
-    ["Shrink window horizontally" exwm-layout-shrink-window-horizontally]
-
-    "---"
-    "*Keyboard*"
-    "---"
-    ["Toggle keyboard mode" exwm-input-toggle-keyboard]
-    ["Send key" exwm-input-send-next-key (eq exwm--input-mode 'line-mode)]
+    ("General"
+     ["Toggle floating" exwm-floating-toggle-floating]
+     ["Toggle fullscreen mode" exwm-layout-toggle-fullscreen]
+     ["Hide window" exwm-floating-hide exwm--floating-frame]
+     ["Close window" (kill-buffer (current-buffer))])
+    ("Resizing"
+     ["Toggle mode-line" exwm-layout-toggle-mode-line]
+     ["Enlarge window vertically" exwm-layout-enlarge-window]
+     ["Enlarge window horizontally" exwm-layout-enlarge-window-horizontally]
+     ["Shrink window vertically" exwm-layout-shrink-window]
+     ["Shrink window horizontally" exwm-layout-shrink-window-horizontally])
+    ("Keyboard"
+     ["Toggle keyboard mode" exwm-input-toggle-keyboard]
+     ["Send key" exwm-input-send-next-key (eq exwm--input-mode 'line-mode)]
     ;; This is merely a reference.
-    ("Send simulation key" :filter
+     ("Send simulation key" :filter
      ,(lambda (&rest _args)
         (let (result)
           (maphash
@@ -361,29 +353,27 @@ One of `line-mode' or `char-mode'.")
            exwm-input--simulation-keys)
           result)))
 
-    ["Define global binding" exwm-input-set-key]
+     ["Define global binding" exwm-input-set-key])
 
-    "---"
-    "*Workspace*"
-    "---"
-    ["Add workspace" exwm-workspace-add]
-    ["Delete current workspace" exwm-workspace-delete]
-    ["Move workspace to" exwm-workspace-move]
-    ["Swap workspaces" exwm-workspace-swap]
-    ["Move X window to" exwm-workspace-move-window]
-    ["Move X window from" exwm-workspace-switch-to-buffer]
-    ["Toggle minibuffer" exwm-workspace-toggle-minibuffer]
-    ["Switch workspace" exwm-workspace-switch]
-    ;; Place this entry at bottom to avoid selecting others by accident.
-    ("Switch to" :filter
-     ,(lambda (&rest _args)
-        (mapcar (lambda (i)
-                  `[,(format "Workspace %d" i)
-                    ,(lambda ()
-                       (interactive)
-                       (exwm-workspace-switch i))
-                    (/= ,i exwm-workspace-current-index)])
-                (number-sequence 0 (1- (length exwm-workspace--list))))))))
+    ("Workspace"
+     ["Add workspace" exwm-workspace-add]
+     ["Delete current workspace" exwm-workspace-delete]
+     ["Move workspace to" exwm-workspace-move]
+     ["Swap workspaces" exwm-workspace-swap]
+     ["Move X window to" exwm-workspace-move-window]
+     ["Move X window from" exwm-workspace-switch-to-buffer]
+     ["Toggle minibuffer" exwm-workspace-toggle-minibuffer]
+     ["Switch workspace" exwm-workspace-switch]
+     ;; Place this entry at bottom to avoid selecting others by accident.
+     ("Switch to" :active (cdr exwm-workspace--list) :filter
+      ,(lambda (&rest _args)
+         (mapcar (lambda (i)
+                   `[,(format "Workspace %d" i)
+                     ,(lambda ()
+                        (interactive)
+                        (exwm-workspace-switch i))
+                     (/= ,i exwm-workspace-current-index)])
+                 (number-sequence 0 (1- (length exwm-workspace--list)))))))))
 
 (define-derived-mode exwm-mode nil "EXWM"
   "Major mode for managing X windows.
