@@ -35,6 +35,11 @@
   "Non-nil to automatically iconify unused X windows when possible."
   :type 'boolean)
 
+(defcustom exwm-layout-fullscreen-release-keyboard t
+  "Non-nil to release the keyboard (enter char-mode) when an application is full-screen.
+That is, when t, Emacs won't intercept keys sent to fullscreen applications."
+  :type 'boolean)
+
 (defcustom exwm-layout-show-all-buffers nil
   "Non-nil to allow switching to buffers on other workspaces."
   :type 'boolean)
@@ -203,7 +208,8 @@ See variable `exwm-layout-auto-iconify'."
     (exwm-layout--set-ewmh-state exwm--id)
     (xcb:flush exwm--connection)
     (set-window-dedicated-p (get-buffer-window) t)
-    (exwm-input--release-keyboard exwm--id)))
+    (when exwm-layout-fullscreen-release-keyboard
+      (exwm-input--release-keyboard exwm--id))))
 
 (cl-defun exwm-layout-unset-fullscreen (&optional id)
   "Restore X window ID from fullscreen state."
