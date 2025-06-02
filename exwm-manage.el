@@ -65,6 +65,7 @@ possible choices:
 * prefix-keys: `exwm-input-prefix-keys' local to this X window.
 * simulation-keys: `exwm-input-simulation-keys' local to this X window.
 * workspace: The initial workspace.
+* dont-steal-focus: Ignore activation message for this X window.
 * managed: Force to manage (non-nil) or not manage (nil) the X window.
 
 For each X window managed for the first time, matching criteria (sexps) are
@@ -98,6 +99,7 @@ want to match against EXWM internal variables such as `exwm-title',
                          (alist :key-type (key-sequence :tag "From")
                                 :value-type (key-sequence :tag "To")))
                         ((const :tag "Workspace" workspace) integer)
+                        ((const :tag "Don't steal focus" dont-steal-focus) boolean)
                         ((const :tag "Managed" managed) boolean)
                         ;; For forward compatibility.
                         ((other) sexp))))
