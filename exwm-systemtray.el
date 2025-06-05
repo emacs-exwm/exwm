@@ -77,28 +77,30 @@ You shall use the default value if using auto-hide minibuffer."
 (defvar exwm-systemtray--embedder-window-depth nil
   "The embedder window's depth.")
 
-(defcustom exwm-systemtray-background-color 'workspace-background
+(defcustom exwm-systemtray-background-color 'default
   "Background color of systemtray.
-This should be a color, the symbol `workspace-background' for the
-background color of current workspace frame, the symbol
-`tab-bar-background' for the background color of the tab-bar, or the
-symbol `transparent' for transparent background.
+This should be a color, the symbol `transparent' for transparent
+background, or a face symbol like `default' or `tab-bar'.
 
 Transparent background is not yet supported when Emacs uses 32-bit depth
 visual, as reported by `x-display-planes'.  The X resource \"Emacs.visualClass:
 TrueColor-24\" can be used to force Emacs to use 24-bit depth."
   :type '(choice (const :tag "Transparent" transparent)
-                 (const :tag "Frame background" workspace-background)
-                 (const :tag "Tab-bar background" tab-bar-background)
+                 (const :tag "Frame background" default)
+                 (const :tag "Tab-bar background" tab-bar)
                  (color :tag "Color"))
   :initialize #'custom-initialize-default
   :set (lambda (symbol value)
+         (when (eq value 'workspace-background)
+           (display-warning 'exwm-systemtray "Use `default' instead\
+ of `workspace-background' for `exwm-systemtray-background-color'.")
+           (setq value 'default))
          (when (and (eq value 'transparent)
                     (not (exwm-systemtray--transparency-supported-p)))
            (display-warning 'exwm-systemtray
                             "Transparent background is not supported yet when \
-using 32-bit depth.  Using `workspace-background' instead.")
-           (setq value 'workspace-background))
+using 32-bit depth.  Using `default' instead.")
+           (setq value 'default))
          (set-default symbol value)
          (when (and exwm-systemtray-mode
                     exwm-systemtray--connection
@@ -264,9 +266,7 @@ using 32-bit depth.  Using `workspace-background' instead.")
   "Refresh background color after theme change or workspace switch.
 If REMAP is not nil, map and unmap the embedder window so that the background is
 redrawn."
-  ;; Only `workspace-background' is dependent on current theme and workspace.
-  (when (memq exwm-systemtray-background-color
-              '(workspace-background tab-bar-background))
+  (when (facep exwm-systemtray-background-color)
     (exwm-systemtray--set-background-color)
     (when remap
       (xcb:+request exwm-systemtray--connection
@@ -285,18 +285,17 @@ Note that this function does not change the current contents of the embedder
 window; unmap & map are necessary for the background color to take effect."
   (when (and exwm-systemtray--connection
              exwm-systemtray--embedder-window)
-    (let* ((color (cl-case exwm-systemtray-background-color
-                    ((transparent nil) ; nil means transparent as well
+    (let* ((color (pcase exwm-systemtray-background-color
+                    ((or `transparent `nil) ; nil means transparent as well
                      (if (exwm-systemtray--transparency-supported-p)
                          nil
                        (message "%s" "[EXWM] system tray does not support \
-`transparent' background; using `workspace-background' instead")
+`transparent' background; using `default' instead")
                        (face-background 'default exwm-workspace--current)))
-                    (workspace-background
-                     (face-background 'default exwm-workspace--current))
-                    (tab-bar-background
-                     (face-background 'tab-bar exwm-workspace--current t))
-                    (t exwm-systemtray-background-color)))
+                    ((pred facep)
+                     (face-background exwm-systemtray-background-color
+                                      exwm-workspace--current))
+                    (_ exwm-systemtray-background-color)))
            (background-pixel (exwm--color->pixel color)))
       (xcb:+request exwm-systemtray--connection
                     (make-instance 'xcb:ChangeWindowAttributes
