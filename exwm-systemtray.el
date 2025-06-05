@@ -67,6 +67,10 @@ You shall use the default value if using auto-hide minibuffer."
   "Gap between icons."
   :type 'integer)
 
+(defcustom exwm-systemtray-position 'bottom
+  "Position of the systemtray at the top or bottom."
+  :type '(choice (const top) (const bottom)))
+
 (defvar exwm-systemtray--connection nil "The X connection.")
 
 (defvar exwm-systemtray--embedder-window nil "The embedder window.")
@@ -75,15 +79,17 @@ You shall use the default value if using auto-hide minibuffer."
 
 (defcustom exwm-systemtray-background-color 'workspace-background
   "Background color of systemtray.
-This should be a color, the symbol `workspace-background' for the background
-color of current workspace frame, or the symbol `transparent' for transparent
-background.
+This should be a color, the symbol `workspace-background' for the
+background color of current workspace frame, the symbol
+`tab-bar-background' for the background color of the tab-bar, or the
+symbol `transparent' for transparent background.
 
 Transparent background is not yet supported when Emacs uses 32-bit depth
 visual, as reported by `x-display-planes'.  The X resource \"Emacs.visualClass:
 TrueColor-24\" can be used to force Emacs to use 24-bit depth."
   :type '(choice (const :tag "Transparent" transparent)
                  (const :tag "Frame background" workspace-background)
+                 (const :tag "Tab-bar background" tab-bar-background)
                  (color :tag "Color"))
   :initialize #'custom-initialize-default
   :set (lambda (symbol value)
@@ -259,7 +265,8 @@ using 32-bit depth.  Using `workspace-background' instead.")
 If REMAP is not nil, map and unmap the embedder window so that the background is
 redrawn."
   ;; Only `workspace-background' is dependent on current theme and workspace.
-  (when (eq 'workspace-background exwm-systemtray-background-color)
+  (when (memq exwm-systemtray-background-color
+              '(workspace-background tab-bar-background))
     (exwm-systemtray--set-background-color)
     (when remap
       (xcb:+request exwm-systemtray--connection
@@ -287,6 +294,8 @@ window; unmap & map are necessary for the background color to take effect."
                        (face-background 'default exwm-workspace--current)))
                     (workspace-background
                      (face-background 'default exwm-workspace--current))
+                    (tab-bar-background
+                     (face-background 'tab-bar exwm-workspace--current t))
                     (t exwm-systemtray-background-color)))
            (background-pixel (exwm--color->pixel color)))
       (xcb:+request exwm-systemtray--connection
@@ -443,6 +452,16 @@ Argument DATA contains the raw event data."
                        :event (xcb:marshal obj exwm-systemtray--connection))))
   (xcb:flush exwm-systemtray--connection))
 
+(defun exwm-systemtray--y-position ()
+  "Y position of system tray."
+  (if (eq exwm-systemtray-position 'bottom)
+      (- (slot-value (exwm-workspace--workarea
+                       exwm-workspace-current-index)
+                     'height)
+         exwm-workspace--frame-y-offset
+         exwm-systemtray-height)
+    0))
+
 (defun exwm-systemtray--on-workspace-switch ()
   "Reparent/Refresh the system tray in `exwm-workspace-switch-hook'."
   (exwm--log)
@@ -455,11 +474,7 @@ Argument DATA contains the raw event data."
                                 (frame-parameter exwm-workspace--current
                                                  'window-id))
                        :x 0
-                       :y (- (slot-value (exwm-workspace--workarea
-                                           exwm-workspace-current-index)
-                                         'height)
-                             exwm-workspace--frame-y-offset
-                             exwm-systemtray-height))))
+                       :y (exwm-systemtray--y-position))))
   (exwm-systemtray--refresh-background-color)
   (exwm-systemtray--refresh))
 
@@ -476,11 +491,7 @@ Argument DATA contains the raw event data."
         (make-instance 'xcb:ConfigureWindow
                        :window exwm-systemtray--embedder-window
                        :value-mask xcb:ConfigWindow:Y
-                       :y (- (slot-value (exwm-workspace--workarea
-                                           exwm-workspace-current-index)
-                                         'height)
-                             exwm-workspace--frame-y-offset
-                             exwm-systemtray-height))))
+                       :y (exwm-systemtray--y-position))))
   (exwm-systemtray--refresh))
 
 (cl-defun exwm-systemtray--init ()
@@ -574,11 +585,7 @@ Argument DATA contains the raw event data."
       (exwm-workspace--update-offsets)
       (setq frame exwm-workspace--current
             ;; Bottom aligned.
-            y (- (slot-value (exwm-workspace--workarea
-                               exwm-workspace-current-index)
-                             'height)
-                 exwm-workspace--frame-y-offset
-                 exwm-systemtray-height)))
+            y (exwm-systemtray--y-position)))
     (setq parent (string-to-number (frame-parameter frame 'window-id)))
     ;; Use default depth, visual and colormap (from root window), instead of
     ;; Emacs frame's.  See Section "Visual and background pixmap handling" in
