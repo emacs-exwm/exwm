@@ -1049,12 +1049,12 @@ Selected frame is checked first."
 
 ;;;###autoload
 (defun exwm-enable (&optional undo)
-  "Obsolete function to enable/disable EXWM. Use `exwm-wm-mode' instead.
+  "Obsolete function to enable/disable EXWM, use `exwm-wm-mode' instead.
 Optional argument UNDO may be either of the following symbols:
 - `undo' prevents reinitialization.
 - `undo-all' attempts to revert all hooks and advice."
   (declare (obsolete exwm-wm-mode "0.33"))
-  (exwm--log "%s" undo)
+  (message "EXWM: Use `exwm-wm-mode' instead of the obsolete `exwm-enable'.")
   (pcase undo
     (`undo (remove-hook 'window-setup-hook #'exwm--init)
            (remove-hook 'after-make-frame-functions #'exwm--init))
