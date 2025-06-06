@@ -1008,11 +1008,21 @@ FRAME, if given, indicates the X display EXWM should manage."
   "EXWM window manager mode."
   :global t
   :group 'exwm
-  (cond
-   (exwm-wm-mode
-    (exwm--enable))
-   (t
-    (exwm--disable))))
+  (if exwm-wm-mode
+      (unless exwm--connection
+        (exwm--enable)
+        (when-let* ((frame (exwm--find-x-frame)))
+          (exwm--init frame)))
+    (when exwm--connection
+      (exwm--exit))
+    (exwm--disable)))
+
+(defun exwm--find-x-frame ()
+  "Find a frame whose terminal is an X display.
+Selected frame is checked first."
+  (cl-loop for term in (cons (frame-terminal (selected-frame)) (terminal-list))
+           if (eq 'x (terminal-live-p term))
+           return (car (frames-on-display-list term))))
 
 (defun exwm--disable ()
   "Unregister functions for EXWM to be initialized."
