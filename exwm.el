@@ -678,7 +678,7 @@ DATA contains unmarshalled SelectionClear event data."
           selection (slot-value obj 'selection))
     (when (and (eq owner exwm--wmsn-window)
                (eq selection xcb:Atom:WM_S0))
-      (exwm--exit))))
+      (exwm-wm-mode -1))))
 
 (defun exwm--on-delete-terminal (terminal)
   "Handle terminal being deleted without Emacs being killed.
@@ -689,7 +689,7 @@ TERMINAL is the terminal being (or that has been) deleted.
 This may happen when invoking `save-buffers-kill-terminal' within an emacsclient
 session."
   (when (eq terminal exwm--terminal)
-    (exwm--exit)))
+    (exwm-wm-mode -1)))
 
 (defun exwm--init-icccm-ewmh ()
   "Initialize ICCCM/EWMH support."
@@ -982,26 +982,26 @@ FRAME, if given, indicates the X display EXWM should manage."
         (exwm-manage--scan))
     (user-error)
     ((quit error)
-     (exwm--exit)
+     (exwm-wm-mode -1)
      ;; Rethrow error
      (warn "[EXWM] EXWM fails to start (%s: %s)" (car err) (cdr err)))))
 
 (defun exwm--exit ()
   "Exit EXWM."
   (exwm--log)
+  (cl-assert exwm--connection)
   (run-hooks 'exwm-exit-hook)
   (setq confirm-kill-emacs nil)
   ;; Exit modules.
-  (when exwm--connection
-    (exwm-input--exit)
-    (exwm-manage--exit)
-    (exwm-workspace--exit)
-    (exwm-floating--exit)
-    (exwm-layout--exit)
-    (xcb:flush exwm--connection)
-    (xcb:disconnect exwm--connection))
-  (setq exwm--connection nil)
-  (setq exwm--terminal nil)
+  (exwm-input--exit)
+  (exwm-manage--exit)
+  (exwm-workspace--exit)
+  (exwm-floating--exit)
+  (exwm-layout--exit)
+  (xcb:flush exwm--connection)
+  (xcb:disconnect exwm--connection)
+  (setq exwm--connection nil
+        exwm--terminal nil)
   (exwm--log "Exited"))
 
 ;;;###autoload
@@ -1162,7 +1162,7 @@ If FORCE is any other non-nil value, force killing of Emacs."
       (run-hooks 'kill-emacs-hook)
       (setq kill-emacs-hook nil))
     ;; Exit each module, destroying all resources created by this connection.
-    (exwm--exit)
+    (exwm-wm-mode -1)
     ;; Set the return value.
     t))
 
