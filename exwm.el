@@ -78,6 +78,7 @@
 (require 'exwm-floating)
 (require 'exwm-manage)
 (require 'exwm-input)
+(eval-when-compile (require 'subr-x)) ;; Needed on 28 for when-let*
 
 (declare-function x-get-atom-name "C source code" (VALUE &optional FRAME))
 
