@@ -847,7 +847,7 @@ manager.  If t, replace it, if nil, abort and ask the user if `ask'."
       (when (eq replace 'ask)
         (setq replace (yes-or-no-p "Replace existing window manager? ")))
       (unless replace
-        (user-error "Other window manager detected")))
+        (error "Other window manager detected")))
     (let ((new-owner (xcb:generate-id exwm--connection)))
       (xcb:+request exwm--connection
           (make-instance 'xcb:CreateWindow
@@ -915,13 +915,12 @@ FRAME, if given, indicates the X display EXWM should manage."
   (exwm--log "%s" frame)
   (cl-assert (not exwm--connection))
   (setq frame (or frame (exwm--find-x-frame)))
-  (unless (eq 'x (framep frame))
-    (message "[EXWM] Not running under X environment")
-    (cl-return-from exwm--init))
   ;; The frame might not be selected if it's created by emacsclient.
   (select-frame-set-input-focus frame)
   (condition-case err
       (progn
+        (unless (eq 'x (framep frame))
+          (error "Not running under X environment"))
         ;; Never initialize again
         (remove-hook 'window-setup-hook #'exwm--init)
         (remove-hook 'after-make-frame-functions #'exwm--init)
@@ -977,7 +976,6 @@ FRAME, if given, indicates the X display EXWM should manage."
         (run-hooks 'exwm-init-hook)
         ;; Manage existing windows
         (exwm-manage--scan))
-    (user-error)
     ((quit error)
      (exwm-wm-mode -1)
      ;; Rethrow error
