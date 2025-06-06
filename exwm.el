@@ -50,7 +50,7 @@
 ;;
 ;;    (require 'exwm)
 ;;    (setq exwm-input-global-keys `(([?\s-r] . exwm-reset)))
-;;    (exwm-enable)
+;;    (exwm-wm-mode)
 ;;
 ;; 3. Add the following lines to '~/.xinitrc':
 ;;
@@ -925,7 +925,9 @@ FRAME, if given, indicates the X display EXWM should manage."
     (cl-return-from exwm-init))
   (condition-case err
       (progn
-        (exwm-enable 'undo)               ;never initialize again
+        ;; Never initialize again
+        (remove-hook 'window-setup-hook #'exwm-init)
+        (remove-hook 'after-make-frame-functions #'exwm-init)
         (setq exwm--terminal (frame-terminal frame))
         (setq exwm--connection (xcb:connect))
         (set-process-query-on-exit-flag (slot-value exwm--connection 'process)
@@ -1006,23 +1008,12 @@ FRAME, if given, indicates the X display EXWM should manage."
   (exwm--log "Exited"))
 
 ;;;###autoload
-(defun exwm-enable (&optional undo)
-  "Enable/Disable EXWM.
-Optional argument UNDO may be either of the following symbols:
-- `undo' prevents reinitialization.
-- `undo-all' attempts to revert all hooks and advice."
-  (exwm--log "%s" undo)
-  (pcase undo
-    (`undo                              ;prevent reinitialization
-     (remove-hook 'window-setup-hook #'exwm-init)
-     (remove-hook 'after-make-frame-functions #'exwm-init))
-    (`undo-all                          ;attempt to revert everything
-     (remove-hook 'window-setup-hook #'exwm-init)
-     (remove-hook 'after-make-frame-functions #'exwm-init)
-     (remove-hook 'kill-emacs-hook #'exwm--server-stop)
-     (dolist (i exwm-blocking-subrs)
-       (advice-remove i #'exwm--server-eval-at)))
-    (_                                  ;enable EXWM
+(define-minor-mode exwm-wm-mode
+  "EXWM window manager mode."
+  :global t
+  :group 'exwm
+  (cond
+   (exwm-wm-mode
      (setq frame-resize-pixelwise t     ;mandatory; before init
            window-resize-pixelwise t
            x-no-window-manager t)
@@ -1037,7 +1028,27 @@ Optional argument UNDO may be either of the following symbols:
      ;; Manage the subordinate Emacs server.
      (add-hook 'kill-emacs-hook #'exwm--server-stop)
      (dolist (i exwm-blocking-subrs)
-       (advice-add i :around #'exwm--server-eval-at)))))
+       (advice-add i :around #'exwm--server-eval-at)))
+   (t
+     (remove-hook 'window-setup-hook #'exwm-init)
+     (remove-hook 'after-make-frame-functions #'exwm-init)
+     (remove-hook 'kill-emacs-hook #'exwm--server-stop)
+     (dolist (i exwm-blocking-subrs)
+       (advice-remove i #'exwm--server-eval-at)))))
+
+;;;###autoload
+(defun exwm-enable (&optional undo)
+  "Obsolete function to enable/disable EXWM. Use `exwm-wm-mode' instead.
+Optional argument UNDO may be either of the following symbols:
+- `undo' prevents reinitialization.
+- `undo-all' attempts to revert all hooks and advice."
+  (declare (obsolete exwm-wm-mode "0.33"))
+  (exwm--log "%s" undo)
+  (pcase undo
+    (`undo (remove-hook 'window-setup-hook #'exwm-init)
+           (remove-hook 'after-make-frame-functions #'exwm-init))
+    (`undo-all (exwm-wm-mode -1))
+    (_ (exwm-wm-mode 1))))
 
 (defun exwm--server-stop ()
   "Stop the subordinate Emacs server."
