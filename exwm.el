@@ -846,7 +846,7 @@ manager.  If t, replace it, if nil, abort and ask the user if `ask'."
     (when (/= owner xcb:Window:None)
       (when (eq replace 'ask)
         (setq replace (yes-or-no-p "Replace existing window manager? ")))
-      (when (not replace)
+      (unless replace
         (user-error "Other window manager detected")))
     (let ((new-owner (xcb:generate-id exwm--connection)))
       (xcb:+request exwm--connection
@@ -883,7 +883,7 @@ manager.  If t, replace it, if nil, abort and ask the user if `ask'."
           (cl-dotimes (i exwm--wmsn-acquire-timeout)
             (setq reply (xcb:+request-unchecked+reply exwm--connection
                             (make-instance 'xcb:GetGeometry :drawable owner)))
-            (when (not reply)
+            (unless reply
               (cl-return))
             (message "Waiting for other window manager to quit... %ds" i)
             (sleep-for 1))

@@ -980,7 +980,7 @@ INDEX must not exceed the current number of workspaces."
                 (unless (exwm-workspace--active-p frame)
                   (exwm-layout--hide id)))))
           ;; Update the 'exwm-selected-window' frame parameter.
-          (when (not (eq frame exwm-workspace--current))
+          (unless (eq frame exwm-workspace--current)
             (with-current-buffer (exwm--id->buffer id)
               (set-frame-parameter frame 'exwm-selected-window
                                    (frame-root-window
