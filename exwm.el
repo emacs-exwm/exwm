@@ -1011,27 +1011,37 @@ FRAME, if given, indicates the X display EXWM should manage."
   :group 'exwm
   (cond
    (exwm-wm-mode
-     (setq frame-resize-pixelwise t     ;mandatory; before init
-           window-resize-pixelwise t
-           x-no-window-manager t)
-     (setenv "INSIDE_EXWM" "1")
-     ;; Ignore unrecognized command line arguments.  This can be helpful
-     ;; when EXWM is launched by some session manager.
-     (push #'vector command-line-functions)
-     ;; In case EXWM is to be started from a graphical Emacs instance.
-     (add-hook 'window-setup-hook #'exwm--init t)
-     ;; In case EXWM is to be started with emacsclient.
-     (add-hook 'after-make-frame-functions #'exwm--init t)
-     ;; Manage the subordinate Emacs server.
-     (add-hook 'kill-emacs-hook #'exwm--server-stop)
-     (dolist (i exwm-blocking-subrs)
-       (advice-add i :around #'exwm--server-eval-at)))
+    (exwm--enable))
    (t
-     (remove-hook 'window-setup-hook #'exwm--init)
-     (remove-hook 'after-make-frame-functions #'exwm--init)
-     (remove-hook 'kill-emacs-hook #'exwm--server-stop)
-     (dolist (i exwm-blocking-subrs)
-       (advice-remove i #'exwm--server-eval-at)))))
+    (exwm--disable))))
+
+(defun exwm--disable ()
+  "Unregister functions for EXWM to be initialized."
+  (exwm--log)
+  (remove-hook 'window-setup-hook #'exwm--init)
+  (remove-hook 'after-make-frame-functions #'exwm--init)
+  (remove-hook 'kill-emacs-hook #'exwm--server-stop)
+  (dolist (i exwm-blocking-subrs)
+    (advice-remove i #'exwm--server-eval-at)))
+
+(defun exwm--enable ()
+  "Register functions for EXWM to be initialized."
+  (exwm--log)
+  (setq frame-resize-pixelwise t     ;mandatory; before init
+        window-resize-pixelwise t
+        x-no-window-manager t)
+  (setenv "INSIDE_EXWM" "1")
+  ;; Ignore unrecognized command line arguments.  This can be helpful
+  ;; when EXWM is launched by some session manager.
+  (push #'vector command-line-functions)
+  ;; In case EXWM is to be started from a graphical Emacs instance.
+  (add-hook 'window-setup-hook #'exwm--init t)
+  ;; In case EXWM is to be started with emacsclient.
+  (add-hook 'after-make-frame-functions #'exwm--init t)
+  ;; Manage the subordinate Emacs server.
+  (add-hook 'kill-emacs-hook #'exwm--server-stop)
+  (dolist (i exwm-blocking-subrs)
+    (advice-add i :around #'exwm--server-eval-at)))
 
 ;;;###autoload
 (defun exwm-enable (&optional undo)
