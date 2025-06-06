@@ -1001,7 +1001,6 @@ FRAME, if given, indicates the X display EXWM should manage."
     (xcb:disconnect exwm--connection))
   (setq exwm--connection nil)
   (setq exwm--terminal nil)
-  (setenv "INSIDE_EXWM" nil)
   (exwm--log "Exited"))
 
 ;;;###autoload
@@ -1018,6 +1017,8 @@ FRAME, if given, indicates the X display EXWM should manage."
 (defun exwm--disable ()
   "Unregister functions for EXWM to be initialized."
   (exwm--log)
+  (setq x-no-window-manager nil)
+  (setenv "INSIDE_EXWM" nil)
   (remove-hook 'window-setup-hook #'exwm--init)
   (remove-hook 'after-make-frame-functions #'exwm--init)
   (remove-hook 'kill-emacs-hook #'exwm--server-stop)
@@ -1031,9 +1032,6 @@ FRAME, if given, indicates the X display EXWM should manage."
         window-resize-pixelwise t
         x-no-window-manager t)
   (setenv "INSIDE_EXWM" "1")
-  ;; Ignore unrecognized command line arguments.  This can be helpful
-  ;; when EXWM is launched by some session manager.
-  (push #'vector command-line-functions)
   ;; In case EXWM is to be started from a graphical Emacs instance.
   (add-hook 'window-setup-hook #'exwm--init t)
   ;; In case EXWM is to be started with emacsclient.
