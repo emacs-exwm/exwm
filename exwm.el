@@ -127,7 +127,7 @@ After this time, the server will be killed.")
 
 (defvar exwm--client-message-functions nil
   "Alist of form ((MESSAGE . MESSAGE-HANDLER)...).
-Set during `exwm-init'.")
+Set during `exwm--init'.")
 
 (defun exwm-reset ()
   "Reset the state of the selected window (non-fullscreen, line-mode, etc)."
@@ -677,7 +677,7 @@ DATA contains unmarshalled SelectionClear event data."
           selection (slot-value obj 'selection))
     (when (and (eq owner exwm--wmsn-window)
                (eq selection xcb:Atom:WM_S0))
-      (exwm-exit))))
+      (exwm--exit))))
 
 (defun exwm--on-delete-terminal (terminal)
   "Handle terminal being deleted without Emacs being killed.
@@ -688,7 +688,7 @@ TERMINAL is the terminal being (or that has been) deleted.
 This may happen when invoking `save-buffers-kill-terminal' within an emacsclient
 session."
   (when (eq terminal exwm--terminal)
-    (exwm-exit)))
+    (exwm--exit)))
 
 (defun exwm--init-icccm-ewmh ()
   "Initialize ICCCM/EWMH support."
@@ -908,10 +908,9 @@ manager.  If t, replace it, if nil, abort and ask the user if `ask'."
         (xcb:+request exwm--connection se))
       (setq exwm--wmsn-window new-owner))))
 
-(cl-defun exwm-init (&optional frame)
+(cl-defun exwm--init (&optional frame)
   "Initialize EXWM.
 FRAME, if given, indicates the X display EXWM should manage."
-  (interactive)
   (exwm--log "%s" frame)
   (if frame
       ;; The frame might not be selected if it's created by emacslicnet.
@@ -919,15 +918,15 @@ FRAME, if given, indicates the X display EXWM should manage."
     (setq frame (selected-frame)))
   (when (not (eq 'x (framep frame)))
     (message "[EXWM] Not running under X environment")
-    (cl-return-from exwm-init))
+    (cl-return-from exwm--init))
   (when exwm--connection
     (exwm--log "EXWM already running")
-    (cl-return-from exwm-init))
+    (cl-return-from exwm--init))
   (condition-case err
       (progn
         ;; Never initialize again
-        (remove-hook 'window-setup-hook #'exwm-init)
-        (remove-hook 'after-make-frame-functions #'exwm-init)
+        (remove-hook 'window-setup-hook #'exwm--init)
+        (remove-hook 'after-make-frame-functions #'exwm--init)
         (setq exwm--terminal (frame-terminal frame))
         (setq exwm--connection (xcb:connect))
         (set-process-query-on-exit-flag (slot-value exwm--connection 'process)
@@ -982,14 +981,12 @@ FRAME, if given, indicates the X display EXWM should manage."
         (exwm-manage--scan))
     (user-error)
     ((quit error)
-     (exwm-exit)
+     (exwm--exit)
      ;; Rethrow error
      (warn "[EXWM] EXWM fails to start (%s: %s)" (car err) (cdr err)))))
 
-
-(defun exwm-exit ()
+(defun exwm--exit ()
   "Exit EXWM."
-  (interactive)
   (exwm--log)
   (run-hooks 'exwm-exit-hook)
   (setq confirm-kill-emacs nil)
@@ -1022,16 +1019,16 @@ FRAME, if given, indicates the X display EXWM should manage."
      ;; when EXWM is launched by some session manager.
      (push #'vector command-line-functions)
      ;; In case EXWM is to be started from a graphical Emacs instance.
-     (add-hook 'window-setup-hook #'exwm-init t)
+     (add-hook 'window-setup-hook #'exwm--init t)
      ;; In case EXWM is to be started with emacsclient.
-     (add-hook 'after-make-frame-functions #'exwm-init t)
+     (add-hook 'after-make-frame-functions #'exwm--init t)
      ;; Manage the subordinate Emacs server.
      (add-hook 'kill-emacs-hook #'exwm--server-stop)
      (dolist (i exwm-blocking-subrs)
        (advice-add i :around #'exwm--server-eval-at)))
    (t
-     (remove-hook 'window-setup-hook #'exwm-init)
-     (remove-hook 'after-make-frame-functions #'exwm-init)
+     (remove-hook 'window-setup-hook #'exwm--init)
+     (remove-hook 'after-make-frame-functions #'exwm--init)
      (remove-hook 'kill-emacs-hook #'exwm--server-stop)
      (dolist (i exwm-blocking-subrs)
        (advice-remove i #'exwm--server-eval-at)))))
@@ -1045,8 +1042,8 @@ Optional argument UNDO may be either of the following symbols:
   (declare (obsolete exwm-wm-mode "0.33"))
   (exwm--log "%s" undo)
   (pcase undo
-    (`undo (remove-hook 'window-setup-hook #'exwm-init)
-           (remove-hook 'after-make-frame-functions #'exwm-init))
+    (`undo (remove-hook 'window-setup-hook #'exwm--init)
+           (remove-hook 'after-make-frame-functions #'exwm--init))
     (`undo-all (exwm-wm-mode -1))
     (_ (exwm-wm-mode 1))))
 
@@ -1146,9 +1143,12 @@ If FORCE is any other non-nil value, force killing of Emacs."
       (run-hooks 'kill-emacs-hook)
       (setq kill-emacs-hook nil))
     ;; Exit each module, destroying all resources created by this connection.
-    (exwm-exit)
+    (exwm--exit)
     ;; Set the return value.
     t))
+
+(define-obsolete-function-alias 'exwm-init #'exwm--init "0.33")
+(define-obsolete-function-alias 'exwm-exit #'exwm--exit "0.33")
 
 (provide 'exwm)
 ;;; exwm.el ends here

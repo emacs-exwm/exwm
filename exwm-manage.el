@@ -250,7 +250,6 @@ This only works when procfs is mounted, which may not be the case on some BSDs."
         (setq default-directory (file-name-as-directory cwd))
       (setq default-directory (expand-file-name "~/")))))
 
-
 (defun exwm-manage--set-client-list ()
   "Set _NET_CLIENT_LIST."
   (exwm--log)
