@@ -913,15 +913,13 @@ manager.  If t, replace it, if nil, abort and ask the user if `ask'."
   "Initialize EXWM.
 FRAME, if given, indicates the X display EXWM should manage."
   (exwm--log "%s" frame)
+  (cl-assert (not exwm--connection))
   (if frame
-      ;; The frame might not be selected if it's created by emacslicnet.
+      ;; The frame might not be selected if it's created by emacsclient.
       (select-frame-set-input-focus frame)
     (setq frame (selected-frame)))
   (when (not (eq 'x (framep frame)))
     (message "[EXWM] Not running under X environment")
-    (cl-return-from exwm--init))
-  (when exwm--connection
-    (exwm--log "EXWM already running")
     (cl-return-from exwm--init))
   (condition-case err
       (progn
