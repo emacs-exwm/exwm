@@ -914,13 +914,12 @@ manager.  If t, replace it, if nil, abort and ask the user if `ask'."
 FRAME, if given, indicates the X display EXWM should manage."
   (exwm--log "%s" frame)
   (cl-assert (not exwm--connection))
-  (if frame
-      ;; The frame might not be selected if it's created by emacsclient.
-      (select-frame-set-input-focus frame)
-    (setq frame (selected-frame)))
-  (when (not (eq 'x (framep frame)))
+  (setq frame (or frame (exwm--find-x-frame)))
+  (unless (eq 'x (framep frame))
     (message "[EXWM] Not running under X environment")
     (cl-return-from exwm--init))
+  ;; The frame might not be selected if it's created by emacsclient.
+  (select-frame-set-input-focus frame)
   (condition-case err
       (progn
         ;; Never initialize again
