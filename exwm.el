@@ -494,7 +494,8 @@ DATA contains unmarshalled PropertyNotify event data."
     (if (buffer-live-p buffer)
         ;; Either an `exwm-mode' buffer (an X window) or a floating frame.
         (with-current-buffer buffer
-          (when (eq exwm--frame exwm-workspace--current)
+          (when (and (eq exwm--frame exwm-workspace--current)
+                     (not (plist-get exwm--configurations 'dont-steal-focus)))
             (if exwm--floating-frame
                 (select-frame exwm--floating-frame)
               (setq window (get-buffer-window nil t))
