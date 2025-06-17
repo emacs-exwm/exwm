@@ -659,6 +659,7 @@ Current buffer must be an `exwm-mode' buffer."
 (defun exwm-input--noop (&rest _args)
   "A placeholder command."
   (interactive))
+(put #'exwm-input--noop 'completion-predicate #'ignore) ;; Move to declare in Emacs 28
 
 (defun exwm-input--fake-last-command ()
   "Fool some packages into thinking there is a change in the buffer."

@@ -250,6 +250,7 @@ Show PROMPT to the user if non-nil."
       (run-hooks 'exwm-workspace-list-change-hook))
     (exwm-workspace--update-switch-history)
     (goto-history-element minibuffer-history-position)))
+(put #'exwm-workspace--prompt-add 'completion-predicate #'ignore) ;; Move to declare in Emacs 28
 
 (defun exwm-workspace--prompt-delete ()
   "Delete workspace from the prompt."
@@ -266,6 +267,7 @@ Show PROMPT to the user if non-nil."
         (exwm-workspace--update-switch-history)
         (goto-history-element (min minibuffer-history-position
                                    (exwm-workspace--count)))))))
+(put #'exwm-workspace--prompt-delete 'completion-predicate #'ignore) ;; Move to declare in Emacs 28
 
 (defun exwm-workspace--update-switch-history ()
   "Update the history for switching workspace to reflect the latest status."
@@ -567,12 +569,14 @@ PREFIX-DIGITS is a list of the digits introduced so far."
              (interactive)
              (exwm-workspace--switch-map-select-nth n)))
          map)))))
+(put #'exwm-workspace--switch-map-nth-prefix 'completion-predicate #'ignore) ;; Move to declare in Emacs 28
 
 (defun exwm-workspace--switch-map-select-nth (n)
   "Select Nth workspace."
   (interactive)
   (goto-history-element (1+ n))
   (exit-minibuffer))
+(put #'exwm-workspace--switch-map-select-nth 'completion-predicate #'ignore) ;; Move to declare in Emacs 28
 
 (defun exwm-workspace-switch (frame-or-index &optional force)
   "Switch to workspace FRAME-OR-INDEX (0-based).
@@ -1559,10 +1563,12 @@ applied to all subsequently created X frames."
 (defun exwm-workspace--handle-focus-in (_orig-func _event)
   "Replacement for `handle-focus-in'."
   (interactive "e"))
+(put #'exwm-workspace--handle-focus-in 'completion-predicate #'ignore) ;; Move to declare in Emacs 28
 
 (defun exwm-workspace--handle-focus-out (_orig-func _event)
   "Replacement for `handle-focus-out'."
   (interactive "e"))
+(put #'exwm-workspace--handle-focus-out 'completion-predicate #'ignore) ;; Move to declare in Emacs 28
 
 (defun exwm-workspace--init-minibuffer-frame ()
   "Initialize minibuffer-only frame."
