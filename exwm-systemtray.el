@@ -116,6 +116,11 @@ using 32-bit depth.  Using `default' instead.")
                                         :window exwm-systemtray--embedder-window))
            (xcb:flush exwm-systemtray--connection))))
 
+(defvar exwm-systemtray-width 0
+  "Current width of systemtray, which is computed when the icons are refreshed.
+The width is useful to adjust the tab-bar alignment when
+`exwm-systemtray-position' is set to `top'.")
+
 ;; GTK icons require at least 16 pixels to show normally.
 (defconst exwm-systemtray--icon-min-size 16 "Minimum icon size.")
 
@@ -256,6 +261,7 @@ using 32-bit depth.  Using `default' instead.")
                                              xcb:ConfigWindow:Width)
                          :x (- (slot-value workarea 'width) x)
                          :width x)))
+    (setq exwm-systemtray-width x)
     (when map
       (xcb:+request exwm-systemtray--connection
           (make-instance 'xcb:MapWindow
