@@ -500,9 +500,7 @@ manager is shutting down."
                (with-current-buffer buffer
                  (let ((kill-buffer-query-functions nil))
                    (kill-buffer buffer))))))
-        (exwm--defer 0 kill-buffer-func buffer)
-        (when (active-minibuffer-window)
-          (exit-minibuffer))))))
+        (exwm--defer 0 kill-buffer-func buffer)))))
 
 (defun exwm-manage--scan ()
   "Search for existing windows and try to manage them."
