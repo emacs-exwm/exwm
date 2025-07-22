@@ -725,11 +725,11 @@ Passing a workspace frame as the first option is for internal use only."
   (if (or (framep frame-or-index)
           (< frame-or-index (exwm-workspace--count)))
       (exwm-workspace-switch frame-or-index)
-    (let ((exwm-workspace--create-silently t))
-      (dotimes (_ (min exwm-workspace-switch-create-limit
-                       (1+ (- frame-or-index
-                              (exwm-workspace--count)))))
-        (make-frame))
+    (let ((count (1+ (- frame-or-index (exwm-workspace--count))))
+          (exwm-workspace--create-silently t))
+      (when (< exwm-workspace-switch-create-limit count)
+        (user-error "Cannot implicitly create more than %d workspaces at a time, customize `exwm-workspace-switch-create-limit' to change this limit" exwm-workspace-switch-create-limit))
+      (dotimes (_ count) (make-frame))
       (run-hooks 'exwm-workspace-list-change-hook))
     (exwm-workspace-switch frame-or-index)))
 
