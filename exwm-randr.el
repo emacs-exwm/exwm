@@ -42,7 +42,7 @@
 ;; to xrandr(1) for the configuration of RandR.
 
 ;; References:
-;; + RandR (http://www.x.org/archive/X11R7.7/doc/randrproto/randrproto.txt)
+;; + RandR (https://www.x.org/archive/X11R7.7/doc/randrproto/randrproto.txt)
 
 ;;; Code:
 
