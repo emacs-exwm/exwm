@@ -144,7 +144,9 @@ Set during `exwm--init'.")
 
 (defun exwm-restart ()
   "Restart EXWM."
+  (declare (obsolete restart-emacs "0.34"))
   (interactive)
+  (message "Use `restart-emacs' instead of the obsolete `exwm-restart'.")
   (exwm--log)
   (when (exwm--confirm-kill-emacs "Restart" 'no-check)
     (let* ((attr (process-attributes (emacs-pid)))
