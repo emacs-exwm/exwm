@@ -1009,7 +1009,12 @@ FRAME, if given, indicates the X display EXWM should manage."
   (if exwm-wm-mode
       (unless exwm--connection
         (exwm--enable)
-        (when-let* ((frame (exwm--find-x-frame)))
+        (when-let* ((frame (and
+                            ;; If we're currently setting up the initial frame, don't start EXWM
+                            ;; yet. Wait for `window-setup-hook' to run.
+                            (not frame-initial-frame)
+                            ;; Otherwise, if we already have a frame, start EXWM immediately.
+                            (exwm--find-x-frame))))
           (exwm--init frame)))
     (when exwm--connection
       (exwm--exit))
@@ -1040,10 +1045,11 @@ Selected frame is checked first."
         window-resize-pixelwise t
         x-no-window-manager t)
   (setenv "INSIDE_EXWM" "1")
-  ;; In case EXWM is to be started from a graphical Emacs instance.
-  (add-hook 'window-setup-hook #'exwm--init t)
-  ;; In case EXWM is to be started with emacsclient.
-  (add-hook 'after-make-frame-functions #'exwm--init t)
+  (if (eq initial-window-system 'x)
+      ;; In case EXWM is to be started from a graphical Emacs instance.
+      (add-hook 'window-setup-hook #'exwm--init t)
+    ;; In case EXWM is to be started with emacsclient.
+    (add-hook 'after-make-frame-functions #'exwm--init t))
   ;; Manage the subordinate Emacs server.
   (add-hook 'kill-emacs-hook #'exwm--server-stop)
   (dolist (i exwm-blocking-subrs)
