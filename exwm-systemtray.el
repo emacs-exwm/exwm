@@ -68,8 +68,11 @@ You shall use the default value if using auto-hide minibuffer."
   :type 'integer)
 
 (defcustom exwm-systemtray-position 'bottom
-  "Position of the systemtray at the top or bottom."
-  :type '(choice (const top) (const bottom)))
+  "Position of the systemtray at the top or bottom.
+The position can be set to an integer.  In this case a
+positive (negative) integer specifies the offset from the top (bottom)
+of the screen."
+  :type '(choice (const top) (const bottom) integer))
 
 (defvar exwm-systemtray--connection nil "The X connection.")
 
@@ -459,13 +462,17 @@ Argument DATA contains the raw event data."
 
 (defun exwm-systemtray--y-position ()
   "Y position of system tray."
-  (if (eq exwm-systemtray-position 'bottom)
+  (let ((pos exwm-systemtray-position))
+    (cond
+     ((or (eq pos 'bottom) (and (fixnump pos) (<= pos 0)))
       (- (slot-value (exwm-workspace--workarea
                        exwm-workspace-current-index)
                      'height)
          exwm-workspace--frame-y-offset
-         exwm-systemtray-height)
-    0))
+         exwm-systemtray-height
+         (if (fixnump pos) (- pos) 0)))
+     ((fixnump pos) pos)
+     (t 0))))
 
 (defun exwm-systemtray--on-workspace-switch ()
   "Reparent/Refresh the system tray in `exwm-workspace-switch-hook'."
