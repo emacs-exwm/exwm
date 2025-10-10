@@ -51,7 +51,6 @@
 (defvar exwm-layout--timer nil "Timer used to track echo area changes.")
 
 (defvar exwm-workspace--current)
-(defvar exwm-workspace--frame-y-offset)
 (declare-function exwm-input--release-keyboard "exwm-input.el")
 (declare-function exwm-input--grab-keyboard "exwm-input.el")
 (declare-function exwm-input-grab-keyboard "exwm-input.el")
@@ -115,23 +114,18 @@ See variable `exwm-layout-auto-iconify'."
          (x (pop edges))
          (y (pop edges))
          (width (- (pop edges) x))
-         (height (- (pop edges) y))
-         frame-x frame-y frame-width frame-height)
+         (height (- (pop edges) y)))
     (with-current-buffer (exwm--id->buffer id)
-      (when exwm--floating-frame
-        (setq frame-width (frame-pixel-width exwm--floating-frame)
-              frame-height (+ (frame-pixel-height exwm--floating-frame)
-                              ;; Use `frame-outer-height' in the future.
-                              exwm-workspace--frame-y-offset))
-        (when exwm--floating-frame-position
-          (setq frame-x (elt exwm--floating-frame-position 0)
-                frame-y (elt exwm--floating-frame-position 1)
+      (when (and exwm--floating-frame exwm--floating-frame-geometry)
+        (with-slots ((frame-x x) (frame-y y)
+                     (frame-width width) (frame-height height))
+            exwm--floating-frame-geometry
+          (setq exwm--floating-frame-geometry nil
                 x (+ x frame-x (- exwm-layout--floating-hidden-position))
                 y (+ y frame-y (- exwm-layout--floating-hidden-position)))
-          (setq exwm--floating-frame-position nil))
-        (exwm--set-geometry (frame-parameter exwm--floating-frame
-                                             'exwm-container)
-                            frame-x frame-y frame-width frame-height))
+          (exwm--set-geometry (frame-parameter exwm--floating-frame
+                                               'exwm-container)
+                              frame-x frame-y frame-width frame-height)))
       (when (exwm-layout--fullscreen-p)
         (with-slots ((x* x)
                      (y* y)
@@ -165,8 +159,7 @@ See variable `exwm-layout-auto-iconify'."
                (geometry (xcb:+request-unchecked+reply exwm--connection
                              (make-instance 'xcb:GetGeometry
                                             :drawable container))))
-          (setq exwm--floating-frame-position
-                (vector (slot-value geometry 'x) (slot-value geometry 'y)))
+          (setq exwm--floating-frame-geometry geometry)
           (exwm--set-geometry container exwm-layout--floating-hidden-position
                               exwm-layout--floating-hidden-position
                               1
