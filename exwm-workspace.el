@@ -147,11 +147,6 @@ Please manually run the hook `exwm-workspace-list-change-hook' afterwards.")
 
 (defvar exwm-workspace--workareas nil "Workareas (struts excluded).")
 
-(defvar exwm-workspace--frame-y-offset 0
-  "Offset between Emacs inner & outer frame in Y.")
-(defvar exwm-workspace--window-y-offset 0
-  "Offset between Emacs first window & outer frame in Y.")
-
 (defvar exwm-input--event-hook)
 (defvar exwm-layout-show-all-buffers)
 (defvar exwm-manage--desktop)
@@ -424,34 +419,6 @@ Show PROMPT to the user if non-nil."
     (xcb:flush exwm--connection))
   (exwm--log "%s" exwm-workspace--workareas)
   (run-hooks 'exwm-workspace--update-workareas-hook))
-
-(defun exwm-workspace--update-offsets ()
-  "Update `exwm-workspace--frame-y-offset'/`exwm-workspace--window-y-offset'."
-  (exwm--log)
-  (if (not (and exwm-workspace--list
-                (or menu-bar-mode tool-bar-mode)))
-      (setq exwm-workspace--frame-y-offset 0
-            exwm-workspace--window-y-offset 0)
-    (redisplay t)
-    (let* ((frame (elt exwm-workspace--list 0))
-           (edges (window-inside-absolute-pixel-edges (frame-first-window
-                                                       frame))))
-      (with-slots (y)
-          (xcb:+request-unchecked+reply exwm--connection
-              (make-instance 'xcb:GetGeometry
-                             :drawable (frame-parameter frame
-                                                        'exwm-container)))
-        (with-slots ((y* y))
-            (xcb:+request-unchecked+reply exwm--connection
-                (make-instance 'xcb:GetGeometry
-                               :drawable (frame-parameter frame
-                                                          'exwm-outer-id)))
-          (with-slots ((y** y))
-              (xcb:+request-unchecked+reply exwm--connection
-                  (make-instance 'xcb:GetGeometry
-                                 :drawable (frame-parameter frame 'exwm-id)))
-            (setq exwm-workspace--frame-y-offset (- y** y*)
-                  exwm-workspace--window-y-offset (- (elt edges 1) y))))))))
 
 (defun exwm-workspace--set-active (frame active)
   "Make frame FRAME active on its monitor.
