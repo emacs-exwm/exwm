@@ -712,9 +712,9 @@ border-width: %d; sibling: #x%x; stack-mode: %d"
                                                    'exwm-outer-id)
                                   nil
                                   nil
-                                  (+ (frame-pixel-width exwm--floating-frame)
+                                  (+ (frame-outer-width exwm--floating-frame)
                                      width-delta)
-                                  (+ (frame-pixel-height exwm--floating-frame)
+                                  (+ (frame-outer-height exwm--floating-frame)
                                      height-delta)))
           (exwm--log "ConfigureWindow (preserve geometry)")
           ;; Configure the unmanaged window.
