@@ -478,7 +478,6 @@ Argument DATA contains the raw event data."
   "Reparent/Refresh the system tray in `exwm-workspace-switch-hook'."
   (exwm--log)
   (unless (exwm-workspace--minibuffer-own-frame-p)
-    (exwm-workspace--update-offsets)
     (xcb:+request exwm-systemtray--connection
         (make-instance 'xcb:ReparentWindow
                        :window exwm-systemtray--embedder-window
@@ -498,7 +497,6 @@ Argument DATA contains the raw event data."
   "Reposition/Refresh the system tray."
   (exwm--log)
   (unless (exwm-workspace--minibuffer-own-frame-p)
-    (exwm-workspace--update-offsets)
     (xcb:+request exwm-systemtray--connection
         (make-instance 'xcb:ConfigureWindow
                        :window exwm-systemtray--embedder-window
@@ -594,7 +592,6 @@ Argument DATA contains the raw event data."
                     (- (line-pixel-height) exwm-systemtray-height)
                   ;; Vertically centered.
                   (/ (- (line-pixel-height) exwm-systemtray-height) 2)))
-      (exwm-workspace--update-offsets)
       (setq frame exwm-workspace--current
             ;; Bottom aligned.
             y (exwm-systemtray--y-position)))
