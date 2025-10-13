@@ -664,7 +664,7 @@ border-width: %d; sibling: #x%x; stack-mode: %d"
                      (or (not exwm--floating-frame)
                          (progn
                            (setq edges
-                                 (window-inside-pixel-edges
+                                 (exwm--window-inside-pixel-edges
                                   (get-buffer-window buffer t))
                                  width-delta (- width (- (elt edges 2)
                                                          (elt edges 0)))
@@ -688,7 +688,7 @@ border-width: %d; sibling: #x%x; stack-mode: %d"
                       (with-slots (x y width height)
                           (exwm-workspace--get-geometry exwm--frame)
                         (list x y width height))
-                    (window-inside-absolute-pixel-edges
+                    (exwm--window-inside-absolute-pixel-edges
                      (get-buffer-window buffer t))))
             (exwm--log "Reply with ConfigureNotify (edges): %s" edges)
             (xcb:+request exwm--connection

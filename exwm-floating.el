@@ -194,7 +194,7 @@ If TILED-P is non-nil, set actions for tiled window."
         (let ((buffer (exwm--id->buffer exwm-transient-for))
               window edges)
           (when (and buffer (setq window (get-buffer-window buffer)))
-            (setq edges (window-inside-absolute-pixel-edges window))
+            (setq edges (exwm--window-inside-absolute-pixel-edges window))
             (unless (and (<= width (- (elt edges 2) (elt edges 0)))
                          (<= height (- (elt edges 3) (elt edges 1))))
               (setq edges nil)))
@@ -256,7 +256,7 @@ If TILED-P is non-nil, set actions for tiled window."
     ;; timely.
     ;; The frame will be made visible by `select-frame-set-input-focus'.
     (make-frame-invisible frame)
-    (let* ((edges (window-inside-pixel-edges window))
+    (let* ((edges (exwm--window-inside-pixel-edges window))
            (frame-width (+ width (- (frame-pixel-width frame)
                                     (- (elt edges 2) (elt edges 0)))))
            (frame-height (+ height (- (frame-pixel-height frame)
@@ -751,7 +751,7 @@ Both DELTA-X and DELTA-Y default to 1.  This command should be bound locally."
            (geometry (xcb:+request-unchecked+reply exwm--connection
                          (make-instance 'xcb:GetGeometry
                                         :drawable floating-container)))
-           (edges (window-inside-absolute-pixel-edges)))
+           (edges (exwm--window-inside-absolute-pixel-edges)))
       (with-slots (x y) geometry
         (exwm--set-geometry floating-container
                             (+ x delta-x) (+ y delta-y) nil nil))
