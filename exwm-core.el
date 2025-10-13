@@ -124,6 +124,32 @@ FORMAT-STRING is a string specifying the message to output, as in
                         ,@objects)
      nil))
 
+(defalias 'exwm--window-inside-absolute-pixel-edges
+  (if (< emacs-major-version 31)
+      (lambda (&optional window)
+        (let* ((window (window-normalize-window window t))
+               (edges (window-inside-absolute-pixel-edges window))
+               (tab-line-height (window-tab-line-height window)))
+          (cl-incf (elt edges 1) tab-line-height)
+          (cl-incf (elt edges 3) tab-line-height)
+          edges))
+    #'window-inside-absolute-pixel-edges)
+  "A fixed implementation of `window-inside-absolute-pixel-edges'.
+This version correctly handles tab-lines on Emacs prior to v31.1.")
+
+(defalias 'exwm--window-inside-pixel-edges
+  (if (< emacs-major-version 31)
+      (lambda (&optional window)
+        (let* ((window (window-normalize-window window t))
+               (edges (window-inside-pixel-edges window))
+               (tab-line-height (window-tab-line-height window)))
+          (cl-incf (elt edges 1) tab-line-height)
+          (cl-incf (elt edges 3) tab-line-height)
+          edges))
+    #'window-inside-pixel-edges)
+  "A fixed implementation of `window-inside-pixel-edges'.
+This version correctly handles tab-lines on Emacs prior to v31.1.")
+
 (defsubst exwm--id->buffer (id)
   "X window ID => Emacs buffer."
   (declare (indent defun))

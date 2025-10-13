@@ -111,14 +111,12 @@ See variable `exwm-layout-auto-iconify'."
 (defun exwm-layout--show (id &optional window)
   "Show window ID exactly fit in the Emacs window WINDOW."
   (exwm--log "Show #x%x in %s" id window)
-  (let* ((edges (window-inside-absolute-pixel-edges window))
+  (let* ((edges (exwm--window-inside-absolute-pixel-edges window))
          (x (pop edges))
          (y (pop edges))
          (width (- (pop edges) x))
          (height (- (pop edges) y))
          frame-x frame-y frame-width frame-height)
-    (when (< emacs-major-version 31)
-      (setq y (+ y (window-tab-line-height window))))
     (with-current-buffer (exwm--id->buffer id)
       (when exwm--floating-frame
         (setq frame-width (frame-pixel-width exwm--floating-frame)
@@ -457,7 +455,7 @@ windows."
    (exwm--fixed-size)                   ;fixed size
    (horizontal
     (let* ((width (frame-pixel-width))
-           (edges (window-inside-pixel-edges))
+           (edges (exwm--window-inside-pixel-edges))
            (inner-width (- (elt edges 2) (elt edges 0)))
            (margin (- width inner-width)))
       (if (> delta 0)
@@ -490,7 +488,7 @@ windows."
         (xcb:flush exwm--connection))))
    (t
     (let* ((height (+ (frame-pixel-height) exwm-workspace--frame-y-offset))
-           (edges (window-inside-pixel-edges))
+           (edges (exwm--window-inside-pixel-edges))
            (inner-height (- (elt edges 3) (elt edges 1)))
            (margin (- height inner-height)))
       (if (> delta 0)

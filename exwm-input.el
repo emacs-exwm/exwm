@@ -265,7 +265,7 @@ ARGS are additional arguments to CALLBACK."
                 ;; The floating X window is on another workspace.
                 (exwm-workspace-switch exwm--frame)))))
         ;; Send a fake MotionNotify event to Emacs.
-        (setq edges (window-inside-pixel-edges window)
+        (setq edges (exwm--window-inside-pixel-edges window)
               fake-evt (make-instance 'xcb:MotionNotify
                                       :detail 0
                                       :time time
