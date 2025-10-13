@@ -465,10 +465,10 @@ Argument DATA contains the raw event data."
   (let ((pos exwm-systemtray-position))
     (cond
      ((or (eq pos 'bottom) (and (fixnump pos) (<= pos 0)))
-      (- (slot-value (exwm-workspace--workarea
-                       exwm-workspace-current-index)
-                     'height)
-         exwm-workspace--frame-y-offset
+      ;; On GTK, pixel-height != outer-height. The frame-pixel-height is the height of the inner
+      ;; frame window (corresponding to window-id) while the frame-outer-height corresponds to the
+      ;; frame itself (outer-id). We embed relative to "window-id", so we need the pixel-height.
+      (- (frame-pixel-height exwm-workspace--current)
          exwm-systemtray-height
          (if (fixnump pos) (- pos) 0)))
      ((fixnump pos) pos)
