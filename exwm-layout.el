@@ -544,39 +544,43 @@ See also `exwm-layout-enlarge-window'."
   (exwm--log "%s" delta)
   (exwm-layout-enlarge-window (- delta) t))
 
+(defun exwm-layout--window-bottom-offset (window)
+  "Compute the distance from the bottom of WINDOW to the bottom of its frame."
+  (- (elt (frame-edges (window-frame window) 'outer-edges) 3)
+     (elt (exwm--window-inside-pixel-edges ) 3)))
+
 (defun exwm-layout-hide-mode-line ()
   "Hide mode-line."
   (interactive)
   (exwm--log)
   (when (and (derived-mode-p 'exwm-mode) mode-line-format)
-    (let (mode-line-height)
-      (when exwm--floating-frame
-        (setq mode-line-height (window-mode-line-height
-                                (frame-root-window exwm--floating-frame))))
+    (if exwm--floating-frame
+        (let* ((window (frame-first-window exwm--floating-frame))
+               (old-bottom-offset (exwm-layout--window-bottom-offset window)))
+          (setq exwm--mode-line-format mode-line-format
+                mode-line-format nil)
+          (exwm-layout-enlarge-window
+           (- (exwm-layout--window-bottom-offset window) old-bottom-offset)))
       (setq exwm--mode-line-format mode-line-format
             mode-line-format nil)
-      (if (not exwm--floating-frame)
-          (exwm-layout--show exwm--id)
-        (set-frame-height exwm--floating-frame
-                          (- (frame-pixel-height exwm--floating-frame)
-                             mode-line-height)
-                          nil t)))))
+      (exwm-layout--show exwm--id))))
 
 (defun exwm-layout-show-mode-line ()
   "Show mode-line."
   (interactive)
   (exwm--log)
   (when (and (derived-mode-p 'exwm-mode) (not mode-line-format))
-    (setq mode-line-format exwm--mode-line-format
-          exwm--mode-line-format nil)
-    (if (not exwm--floating-frame)
-        (exwm-layout--show exwm--id)
-      (set-frame-height exwm--floating-frame
-                        (+ (frame-pixel-height exwm--floating-frame)
-                           (window-mode-line-height (frame-root-window
-                                                     exwm--floating-frame)))
-                        nil t)
-      (call-interactively #'exwm-input-grab-keyboard))
+    (if exwm--floating-frame
+        (let* ((window (frame-first-window exwm--floating-frame))
+               (old-bottom-offset (exwm-layout--window-bottom-offset window)))
+          (setq mode-line-format exwm--mode-line-format
+                exwm--mode-line-format nil)
+          (exwm-layout-enlarge-window
+           (- (exwm-layout--window-bottom-offset window) old-bottom-offset))
+          (call-interactively #'exwm-input-grab-keyboard))
+      (setq mode-line-format exwm--mode-line-format
+            exwm--mode-line-format nil)
+      (exwm-layout--show exwm--id))
     (force-mode-line-update)))
 
 (defun exwm-layout-toggle-mode-line ()
