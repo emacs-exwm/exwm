@@ -454,7 +454,7 @@ windows."
    ;; Resize on floating layout
    (exwm--fixed-size)                   ;fixed size
    (horizontal
-    (let* ((width (frame-pixel-width))
+    (let* ((width (frame-outer-width))
            (edges (exwm--window-inside-pixel-edges))
            (inner-width (- (elt edges 2) (elt edges 0)))
            (margin (- width inner-width)))
@@ -487,7 +487,7 @@ windows."
                            :width width))
         (xcb:flush exwm--connection))))
    (t
-    (let* ((height (+ (frame-pixel-height) exwm-workspace--frame-y-offset))
+    (let* ((height (frame-outer-height))
            (edges (exwm--window-inside-pixel-edges))
            (inner-height (- (elt edges 3) (elt edges 1)))
            (margin (- height inner-height)))
