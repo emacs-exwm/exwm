@@ -271,26 +271,25 @@ selected by `other-buffer'."
 (defun exwm-layout--set-client-list-stacking ()
   "Set _NET_CLIENT_LIST_STACKING."
   (exwm--log)
-  (let (id clients-floating clients clients-iconic clients-other)
-    (dolist (pair exwm--id-buffer-alist)
-      (setq id (car pair))
-      (with-current-buffer (cdr pair)
-        (if (eq exwm--frame exwm-workspace--current)
-            (if exwm--floating-frame
-                ;; A floating X window on the current workspace.
-                (setq clients-floating (cons id clients-floating))
-              (if (get-buffer-window (cdr pair) exwm-workspace--current)
-                  ;; A normal tilling X window on the current workspace.
-                  (setq clients (cons id clients))
-                ;; An iconic tilling X window on the current workspace.
-                (setq clients-iconic (cons id clients-iconic))))
-          ;; X window on other workspaces.
-          (setq clients-other (cons id clients-other)))))
+  (let (clients-floating clients clients-iconic clients-other)
+    (pcase-dolist (`(,id . ,buffer) exwm--id-buffer-alist)
+      (with-current-buffer buffer
+        (cond
+         ;; X window on other workspaces.
+         ((not (eq exwm--frame exwm-workspace--current))
+          (push id clients-other))
+         ;; A floating X window on the current workspace.
+         (exwm--floating-frame (push id clients-floating))
+         ;; A normal tilling X window on the current workspace.
+         ((get-buffer-window buffer exwm-workspace--current)
+          (push id clients))
+         ;; An iconic tilling X window on the current workspace.
+         (t (push id clients-iconic)))))
     (xcb:+request exwm--connection
         (make-instance 'xcb:ewmh:set-_NET_CLIENT_LIST_STACKING
                        :window exwm--root
-                       :data (vconcat (append clients-other clients-iconic
-                                              clients clients-floating))))))
+                       :data (vconcat clients-other clients-iconic
+                                      clients clients-floating)))))
 
 (defun exwm-layout--refresh (&optional frame)
   "Refresh layout of FRAME.
