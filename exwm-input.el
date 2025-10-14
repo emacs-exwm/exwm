@@ -114,9 +114,6 @@ defined in `exwm-mode-map' here."
 
 (defvar exwm-input--line-mode-cache nil "Cache for incomplete key sequence.")
 
-(defvar exwm-input--local-simulation-keys nil
-  "Whether simulation keys are local.")
-
 (defvar exwm-input--simulation-keys nil "Simulation keys in `line-mode'.")
 
 (defvar exwm-input--skip-buffer-list-update nil
@@ -935,9 +932,10 @@ If END-KEY is non-nil, stop sending keys if it's pressed."
       (when (eq key end-key) (cl-return-from exwm-input-send-next-key))
       (exwm-input--fake-key key))))
 
-(defun exwm-input--set-simulation-keys (keys &optional cache)
+(defun exwm-input--set-simulation-keys (keys &optional cache local)
   "Set simulation KEYS.
-If CACHE is non-nil reuse `exwm-input--simulation-keys' cache."
+If CACHE is non-nil, reuse `exwm-input--simulation-keys' cache.
+If LOCAL is non-nil, bind the keys in the current buffer only."
   (exwm--log "%s" keys)
   (unless cache
     ;; Unbind simulation keys.
@@ -946,7 +944,7 @@ If CACHE is non-nil reuse `exwm-input--simulation-keys' cache."
       (when (hash-table-p hash)
         (maphash (lambda (key _value)
                    (when (sequencep key)
-                     (if exwm-input--local-simulation-keys
+                     (if local
                          (local-unset-key key)
                        (define-key exwm-mode-map key nil))))
                  hash)))
@@ -966,7 +964,7 @@ If CACHE is non-nil reuse `exwm-input--simulation-keys' cache."
   ;; Update keymaps.
   (maphash (lambda (key _value)
              (when (sequencep key)
-               (if exwm-input--local-simulation-keys
+               (if local
                    (local-set-key key #'exwm-input-send-simulation-key)
                  (define-key exwm-mode-map key
                              #'exwm-input-send-simulation-key))))
@@ -1042,7 +1040,7 @@ ends unless it's specifically saved in the Customize interface for
     (let ((entry `((,original-key . ,simulated-key))))
       (setq exwm-input-simulation-keys (append exwm-input-simulation-keys
                                                entry))
-      (exwm-input--set-simulation-keys entry t))))
+      (exwm-input--set-simulation-keys entry 'cache))))
 
 (defun exwm-input--unset-simulation-keys ()
   "Clear simulation keys and key bindings defined."
@@ -1062,8 +1060,7 @@ where both ORIGINAL-KEY and SIMULATED-KEY are key sequences."
   (exwm--log)
   (make-local-variable 'exwm-input--simulation-keys)
   (use-local-map (copy-keymap exwm-mode-map))
-  (let ((exwm-input--local-simulation-keys t))
-    (exwm-input--set-simulation-keys simulation-keys)))
+  (exwm-input--set-simulation-keys simulation-keys 'cache 'local))
 
 (cl-defun exwm-input-send-simulation-key (n)
   "Fake N key events according to the last input key sequence."
