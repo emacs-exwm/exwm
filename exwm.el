@@ -651,10 +651,10 @@ DATA contains unmarshalled PropertyNotify event data."
             (call-interactively #'exwm-floating-hide)
           ;; We can't simply bury the buffer because it may be in an unselected
           ;; window, or even a different frame/workspace.
-          (replace-buffer-in-windows))
-        ;; We bury the buffer even if it's floating to ensure it goes to the
-        ;; back of the buffer switch list.
-        (bury-buffer)))))
+          (replace-buffer-in-windows)))
+      ;; We bury the buffer even if it's floating to ensure it goes to the
+      ;; back of the buffer switch list.
+      (bury-buffer buffer))))
 
 (defun exwm--on-ClientMessage (raw-data _synthetic)
   "Handle ClientMessage event.
