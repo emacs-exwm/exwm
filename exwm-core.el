@@ -293,6 +293,7 @@ One of `line-mode' or `char-mode'.")
 (defvar-local exwm--protocols nil)
 (defvar-local exwm-state xcb:icccm:WM_STATE:NormalState "WM_STATE.")
 (defvar-local exwm--ewmh-state nil "_NET_WM_STATE.")
+(defvar-local exwm--icon nil "Application Icon (XPM string).")
 ;; _NET_WM_NORMAL_HINTS
 (defvar-local exwm--normal-hints-x nil)
 (defvar-local exwm--normal-hints-y nil)

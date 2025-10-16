@@ -164,6 +164,7 @@ want to match against EXWM internal variables such as `exwm-title',
 (declare-function exwm--update-protocols "exwm.el" (id &optional force))
 (declare-function exwm--update-struts "exwm.el" (id))
 (declare-function exwm--update-title "exwm.el" (id))
+(declare-function exwm--update-icon "exwm.el" (id &optional force))
 (declare-function exwm--update-transient-for "exwm.el" (id &optional force))
 (declare-function exwm--update-desktop "exwm.el" (id &optional force))
 (declare-function exwm--update-window-type "exwm.el" (id &optional force))
@@ -300,6 +301,7 @@ This only works when procfs is mounted, which may not be the case on some BSDs."
       (exwm-manage--update-geometry id)
       (exwm-manage--update-mwm-hints id)
       (exwm--update-title id)
+      (exwm--update-icon id)
       (exwm--update-protocols id)
       (setq exwm--configurations (exwm-manage--get-configurations))
       ;; OverrideRedirect is not checked here.
