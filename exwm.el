@@ -104,6 +104,10 @@
   "Normal hook run when window title is updated."
   :type 'hook)
 
+(defcustom exwm-update-icon-hook nil
+  "Normal hook run when window icon is updated."
+  :type 'hook)
+
 (defcustom exwm-blocking-subrs
   ;; `x-file-dialog' and `x-select-font' are missing on some Emacs builds, for
   ;; example on the X11 Lucid build.
@@ -433,6 +437,120 @@ is unset."
   (exwm--update-struts-partial id)
   (exwm--update-struts-legacy id))
 
+(defsubst exwm--icon-index-colors (data offset length)
+  "Index the colors in an ARGB vector.
+DATA is the ARGB vector where OFFSET and LENGTH are the bounds of the
+image.
+
+Return (COLORS . PIXELS) where COLORS is the color index (vector of colors)
+and PIXELS is the input image with the raw ARGB values replaced by their
+indices in COLORS."
+  (let* ((colorhash (make-hash-table :size length))
+         (pixels (make-vector length 0)))
+    (dotimes (i length)
+      (let ((pixel (aref data (+ i offset))))
+        (if (= 0 (logand #xFF000000 pixel))
+            (aset pixels i 0)
+          (aset pixels i
+                (with-memoization
+                    ;; Alpha values other than "fully transparent"
+                    ;; are ignored.
+                    (gethash (logand pixel #xFFFFFF) colorhash)
+                  (1+ (hash-table-count colorhash)))))))
+    (let ((colors (make-vector (1+ (hash-table-count colorhash)) nil)))
+      (aset colors 0 "None")
+      (maphash
+       (lambda (color idx) (aset colors idx (format "#%06X" color)))
+       colorhash)
+      (cons colors pixels))))
+
+(defsubst exwm--icon-colornames (count)
+  "Return a vector of unique color names (strings) for COUNT colors."
+  (let* ((colorlen (length (format "%x" count)))
+         (vec (make-vector (1+ count) nil))
+         (fmt (format "%%0%dx" colorlen)))
+    (dotimes (i (length vec))
+      (aset vec i (format fmt i)))
+    vec))
+
+(defun exwm--icon-to-xpm (data)
+  "Convert the ARGB image vector DATA into an XPM image.
+DATA must be a vector the form [width, height, pixels...].
+If DATA contains multiple images, only the first is used."
+  (pcase-let* ((width (aref data 0))
+               (height (aref data 1))
+               ;; RGB -> color index & pixel vector.
+               (`(,colors . ,pixels)
+                (exwm--icon-index-colors data 2 (* width height)))
+               ;; index -> color string mapping (for performance)
+               (colornames (exwm--icon-colornames (length colors)))
+               ;; We collect our output into a "chunks" list and
+               ;; reverse/concat at the end for better performance
+               ;; than inserting into a temporary buffer.
+               (chunks nil))
+    ;; Insert the XPM header.
+    (push
+     (format "/* XPM */\nstatic char * XFACE[] = {\n\"%d %d %d %d\",\n"
+             width height
+             (length colors)
+             (length (aref colornames 0)))
+          chunks)
+    ;; Insert the color index.
+    (dotimes (i (length colors))
+      (push "\"" chunks)
+      (push (aref colornames i) chunks)
+      (push " c " chunks)
+      (push (aref colors i) chunks)
+      (push "\",\n" chunks))
+    ;; Insert the pixels.
+    (dotimes (i (length pixels))
+      (when (= (% i width) 0) (push "\"" chunks))
+      (push (aref colornames (aref pixels i)) chunks)
+      (when (= (% (1+ i) width) 0) (push "\",\n" chunks)))
+    ;; Insert the XPM footer.
+    (push "};\n" chunks)
+    ;; And done.
+    (apply #'concat (nreverse chunks))))
+
+(defun exwm--update-icon (id &optional force)
+  "Update the `exwm--icon' for the X window ID from _NET_WM_ICON.
+If FORCE is t, update the icon even if `exwm--icon' is already set."
+  (exwm--log "#x%x" id)
+  (with-current-buffer (exwm--id->buffer id)
+    (when-let* (((or force (not exwm--icon)))
+                (reply (xcb:+request-unchecked+reply exwm--connection
+                           (make-instance 'xcb:ewmh:-get-_NET_WM_ICON
+                                          :window id)))
+                (data (slot-value reply 'value))
+                ((length> data 0)))
+      (condition-case err
+          (progn
+            (setq exwm--icon (exwm--icon-to-xpm data))
+            (when exwm--icon
+              (run-hooks 'exwm-update-icon-hook)))
+        (warn "[EXWM] Invalid window icon for `%s': %s" exwm-title err)))))
+
+;; LIMITATIONS:
+;;
+;; - This code currently only processes the first icon, ignoring all
+;;   the rest (other sizes). Ideally we'd parse all icons and pick
+;;   the best size for what we need, but we'd need to do it lazily
+;;   in that case (for performance reasons).
+;; - This code doesn't fetch icons by-name (_NET_WM_ICON_NAME). However,
+;;   setting this property doesn't seem to be that common anyways.
+(defun exwm-icon (&optional id &rest properties)
+  "Return the X window icon for the window with ID.
+
+If ID is unspecified or nil, return the icon for the current window.  If
+the specified window has no icon, return nil.
+
+PROPERTIES are passed to `create-image'.  See Info node `(elisp)Image
+Descriptors' for the list of supported properties."
+  (when-let* ((icon (if (and id (/= id exwm--id))
+                  (buffer-local-value 'exwm--icon (exwm--id->buffer id))
+                exwm--icon)))
+    (apply #'create-image icon 'xpm t properties)))
+
 (defun exwm--on-PropertyNotify (data _synthetic)
   "Handle PropertyNotify event.
 DATA contains unmarshalled PropertyNotify event data."
@@ -467,6 +585,8 @@ DATA contains unmarshalled PropertyNotify event data."
               ((= atom xcb:Atom:WM_PROTOCOLS)
                (exwm--update-protocols id t))
               ((= atom xcb:Atom:_NET_WM_USER_TIME)) ;ignored
+              ((= atom xcb:Atom:_NET_WM_ICON)
+               (exwm--update-icon id t))
               (t
                (exwm--log "Unhandled: %s(%d)"
                           (x-get-atom-name atom exwm-workspace--current)
@@ -790,7 +910,7 @@ session."
                             xcb:Atom:_NET_WM_STRUT
                             xcb:Atom:_NET_WM_STRUT_PARTIAL
                             ;; xcb:Atom:_NET_WM_ICON_GEOMETRY
-                            ;; xcb:Atom:_NET_WM_ICON
+                            xcb:Atom:_NET_WM_ICON
                             xcb:Atom:_NET_WM_PID
                             ;; xcb:Atom:_NET_WM_HANDLED_ICONS
                             ;; xcb:Atom:_NET_WM_USER_TIME
