@@ -806,7 +806,11 @@ SYNTHETIC indicates whether the event is a synthetic event."
   "Initialize manage module."
   ;; Intern _MOTIF_WM_HINTS
   (exwm--log)
-  (setq exwm-manage--_MOTIF_WM_HINTS (exwm--intern-atom "_MOTIF_WM_HINTS"))
+  (setq exwm-manage--_MOTIF_WM_HINTS (exwm--intern-atom "_MOTIF_WM_HINTS")
+        exwm-manage--frame-outer-id-list nil)
+  (dolist (frame (frame-list))
+    (when (display-graphic-p frame)
+      (exwm-manage--add-frame frame)))
   (add-hook 'after-make-frame-functions #'exwm-manage--add-frame)
   (add-hook 'delete-frame-functions #'exwm-manage--remove-frame)
   (xcb:+event exwm--connection 'xcb:ConfigureRequest
