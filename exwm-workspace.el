@@ -1462,7 +1462,8 @@ When QUIT is non-nil cleanup avoid communicating with the X server."
   "Make workspace FRAME fullscreen.
 Called from a timer."
   (when (frame-live-p frame)
-    (set-frame-parameter frame 'fullscreen 'fullboth)))
+    (set-frame-parameter frame 'fullscreen 'fullboth)
+    (exwm-workspace--set-fullscreen frame)))
 
 (defun exwm-workspace--on-after-make-frame (frame)
   "Hook run upon `make-frame' that configures FRAME as a workspace."
