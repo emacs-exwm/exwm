@@ -15,6 +15,7 @@ Optional features:
 + Input method
 + Background setting support
 + XSETTINGS server
++ X window icons in the mode-line
 
 Please check out the
 [screenshots](https://github.com/emacs-exwm/exwm/wiki/Screenshots)
