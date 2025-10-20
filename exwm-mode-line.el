@@ -40,6 +40,19 @@
   "EXWM mode line customizations."
   :group 'exwm)
 
+(defcustom exwm-mode-line-icon-position 'before-buffer-name
+  "Position of the X window icon on the mode-line."
+  :group 'exwm-mode-line
+  :type '(choice (const :tag "None (user must place the mode-line segment)" nil)
+                 (const :tag "Before the buffer name" before-buffer-name)
+                 (const :tag "After the buffer name" after-buffer-name))
+  :set
+  (lambda (symbol value)
+    (custom-set-default symbol value)
+    (when exwm-mode-line-icon-mode
+      (exwm-mode-line--place-icon)
+      (force-mode-line-update t))))
+
 (defcustom exwm-mode-line-icon-height 1.0
   "Height of the EXWM mode-line icon.
 The height is a fraction of the mode-line font height."
@@ -52,7 +65,6 @@ The height is a fraction of the mode-line font height."
 
 (defun exwm-mode-line--setup ()
   "Setup the EXWM mode-line in the current buffer."
-  (setq-local mode-line-front-space '("" exwm-mode-line--icon))
   (exwm-mode-line--update-icon))
 
 (defun exwm-mode-line--update-icon ()
@@ -62,8 +74,21 @@ The height is a fraction of the mode-line font height."
                                :scale 1.0
                                :height `(,exwm-mode-line-icon-height . ch))))
     (setq exwm-mode-line--icon
-          (propertize " " 'display icon))
+          (concat " " (propertize " " 'display icon) " "))
     (force-mode-line-update)))
+
+(defun exwm-mode-line--place-icon ()
+  (when exwm-mode-line-icon-position
+    (cl-callf2 remove
+        '(exwm-mode-line--icon exwm-mode-line--icon)
+        (default-value 'mode-line-buffer-identification))
+    (pcase-exhaustive exwm-mode-line-icon-position
+      ('before-buffer-name
+       (push '(exwm-mode-line--icon exwm-mode-line--icon)
+             (default-value 'mode-line-buffer-identification)))
+      ('after-buffer-name
+       (cl-callf append (default-value 'mode-line-buffer-identification)
+         '((exwm-mode-line--icon exwm-mode-line--icon)))))))
 
 ;;;###autoload
 (define-minor-mode exwm-mode-line-icon-mode
@@ -81,8 +106,7 @@ The height is a fraction of the mode-line font height."
     (remove-hook 'exwm-mode-hook #'exwm-mode-line--setup)
     (dolist (pair exwm--id-buffer-alist)
       (with-current-buffer (cdr pair)
-        (setq exwm-mode-line--icon nil)
-        (kill-local-variable 'mode-line-front-space)))
+        (setq exwm-mode-line--icon nil)))
     (force-mode-line-update t)))
 
 (provide 'exwm-mode-line)
