@@ -201,9 +201,14 @@ See variable `exwm-layout-auto-iconify'."
                        :stack-mode xcb:StackMode:Above))
     (cl-pushnew xcb:Atom:_NET_WM_STATE_FULLSCREEN exwm--ewmh-state)
     (exwm-layout--set-ewmh-state exwm--id)
+    (unless exwm--floating-frame
+      ;; Store window configuration and leave the window of the buffer's window
+      ;; as the sole window.  This makes commands such as `other-window` more
+      ;; intuitive.
+      (setq exwm--fullscreen-previous-configuration (current-window-configuration))
+      (delete-other-windows))
     (xcb:flush exwm--connection)
-    (set-window-dedicated-p (get-buffer-window) t)
-    (exwm-input--release-keyboard exwm--id)))
+    (set-window-dedicated-p (get-buffer-window) t)))
 
 (cl-defun exwm-layout-unset-fullscreen (&optional id)
   "Restore X window ID from fullscreen state."
@@ -220,6 +225,11 @@ See variable `exwm-layout-auto-iconify'."
     (exwm-layout--set-ewmh-state exwm--id)
     (if exwm--floating-frame
         (exwm-layout--show exwm--id (frame-root-window exwm--floating-frame))
+      (when exwm--fullscreen-previous-configuration
+        ;; Restore the window configuration as it was before switching to
+        ;; fullscreen.
+        (set-window-configuration exwm--fullscreen-previous-configuration)
+        (setq exwm--fullscreen-previous-configuration nil))
       (xcb:+request exwm--connection
           (make-instance 'xcb:ConfigureWindow
                          :window exwm--id
@@ -231,9 +241,7 @@ See variable `exwm-layout-auto-iconify'."
         (when window
           (exwm-layout--show exwm--id window))))
     (xcb:flush exwm--connection)
-    (set-window-dedicated-p (get-buffer-window) nil)
-    (when (eq 'line-mode exwm--selected-input-mode)
-      (exwm-input--grab-keyboard exwm--id))))
+    (set-window-dedicated-p (get-buffer-window) nil)))
 
 (defun exwm-layout-toggle-fullscreen (&optional id)
   "Toggle fullscreen mode of X window ID.
