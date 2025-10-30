@@ -542,47 +542,98 @@ See also `exwm-layout-enlarge-window'."
      (elt (exwm--window-inside-pixel-edges ) 3)))
 
 (defun exwm-layout-hide-mode-line ()
-  "Hide mode-line."
+  "Hide the mode-line.
+See `exwm-layout-toggle-mode-line' for more details."
   (interactive)
   (exwm--log)
-  (when (and (derived-mode-p 'exwm-mode) mode-line-format)
-    (if exwm--floating-frame
-        (let* ((window (frame-first-window exwm--floating-frame))
-               (old-bottom-offset (exwm-layout--window-bottom-offset window)))
-          (setq exwm--mode-line-format mode-line-format
-                mode-line-format nil)
-          (exwm-layout-enlarge-window
-           (- (exwm-layout--window-bottom-offset window) old-bottom-offset)))
-      (setq exwm--mode-line-format mode-line-format
-            mode-line-format nil)
-      (exwm-layout--show exwm--id))))
+  (exwm-layout-toggle-mode-line -1))
 
 (defun exwm-layout-show-mode-line ()
-  "Show mode-line."
+  "Show the mode-line.
+See `exwm-layout-toggle-mode-line' for more details."
   (interactive)
   (exwm--log)
-  (when (and (derived-mode-p 'exwm-mode) (not mode-line-format))
-    (if exwm--floating-frame
-        (let* ((window (frame-first-window exwm--floating-frame))
-               (old-bottom-offset (exwm-layout--window-bottom-offset window)))
-          (setq mode-line-format exwm--mode-line-format
-                exwm--mode-line-format nil)
-          (exwm-layout-enlarge-window
-           (- (exwm-layout--window-bottom-offset window) old-bottom-offset))
-          (call-interactively #'exwm-input-grab-keyboard))
-      (setq mode-line-format exwm--mode-line-format
-            exwm--mode-line-format nil)
-      (exwm-layout--show exwm--id))
-    (force-mode-line-update)))
+  (exwm-layout-toggle-mode-line 1))
 
-(defun exwm-layout-toggle-mode-line ()
-  "Toggle the display of mode-line."
-  (interactive)
+;; You can do this with by let-binding places with `gv-ref' and
+;; `gv-deref' instead of a macro, but the macro is cleaner.
+(defmacro exwm-layout--toggle-mode-line-1
+    (hide active-place saved-place none)
+  "Macro implementing the core logic behind mode-line toggling.
+
+If HIDE, the modeline is hidden. Otherwise, it is shown.
+
+ACTIVE-PLACE is the generalized variable where the active mode-line
+is stored.
+
+SAVED-PLACE is the generalized variable where the saved mode-line is
+stored when hidden.
+
+NONE is the symbol stored in ACTIVE-PLACE to hide the mode-line."
+  `(if ,hide
+       (ignore (cl-shiftf ,saved-place ,active-place ',none))
+     (setf ,active-place (or (cl-shiftf ,saved-place nil)
+                          mode-line-format
+                          (default-value 'mode-line-format)
+                          (error "No sane mode-line to show")))))
+
+(defsubst exwm-layout--window-specific-mode-line (window)
+  "Return non-nil if WINDOW has a WINDOW-specific mode-line."
+  (or (window-parameter window 'mode-line-format)
+      (window-parameter window 'exwm--saved-mode-line-format)))
+
+(defsubst exwm-layout--mode-line (&optional window)
+  "Return the effective mode-line for WINDOW or the current buffer.
+Return nil if the buffer/window has no mode-line."
+  (pcase (and window (window-parameter window 'mode-line-format))
+    ('none nil)
+    ('nil mode-line-format)
+    (wml wml)))
+
+(defun exwm-layout-toggle-mode-line (&optional arg)
+  "Toggle the display of mode-line.
+
+If ARG is a positive number, show the mode-line.
+If ARG is a negative number, hide the mode-line.
+Otherwise, toggle the mode-line.
+
+If the mode-line format is specific to the current window (e.g., an
+undecorated floating window), the mode-line is toggled in that window
+only. Otherwise, it's toggled globally."
+  (interactive (list (and current-prefix-arg
+                          (prefix-numeric-value current-prefix-arg))))
   (exwm--log)
-  (when (derived-mode-p 'exwm-mode)
-    (if mode-line-format
-        (exwm-layout-hide-mode-line)
-      (exwm-layout-show-mode-line))))
+  (let* ((target-window
+          (cond (exwm--floating-frame
+                 (frame-first-window exwm--floating-frame))
+                ((eq (window-buffer) (current-buffer))
+                 (selected-window))))
+         (is-visible
+          (not (null (exwm-layout--mode-line target-window)))))
+    (when (or (not (numberp arg)) (eq (< arg 0) is-visible))
+      (let ((old-bottom-offset
+             (and exwm--floating-frame
+                  target-window
+                  (exwm-layout--window-bottom-offset target-window))))
+        (if (and target-window
+                 (exwm-layout--window-specific-mode-line target-window))
+            (exwm-layout--toggle-mode-line-1
+             is-visible
+             (window-parameter target-window
+                               'mode-line-format)
+             (window-parameter target-window
+                               'exwm--saved-mode-line-format)
+             none)
+          (exwm-layout--toggle-mode-line-1
+           is-visible
+           mode-line-format
+           exwm--saved-mode-line-format
+           nil))
+        (when old-bottom-offset
+          (exwm-layout-enlarge-window
+           (- (exwm-layout--window-bottom-offset target-window)
+              old-bottom-offset))))
+      (force-mode-line-update))))
 
 (defun exwm-layout--init ()
   "Initialize layout module."

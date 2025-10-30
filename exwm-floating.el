@@ -212,24 +212,15 @@ configured dimension is invalid."
             exwm--floating-frame frame)
 
       ;; Adjust the header & mode line before calculating sizes.
-      (if-let* ((floating-mode-line (plist-get exwm--configurations
-                                               'floating-mode-line)))
-          (setq exwm--mode-line-format (or exwm--mode-line-format
-                                           mode-line-format)
-                mode-line-format floating-mode-line)
-        (if (and (not (plist-member exwm--configurations 'floating-mode-line))
-                 exwm--mwm-hints-decorations)
-            (when exwm--mode-line-format
-              (setq mode-line-format exwm--mode-line-format))
-          ;; The mode-line need to be hidden in floating mode.
-          (setq exwm--mode-line-format (or exwm--mode-line-format
-                                           mode-line-format)
-                mode-line-format nil)))
-      (if-let* ((floating-header-line (plist-get exwm--configurations
-                                                 'floating-header-line)))
-          (setq header-line-format floating-header-line)
-        ;; The header-line need to be hidden in floating mode.
-        (setq header-line-format nil))
+      (pcase-dolist (`(,prop . ,setting) '((mode-line-format . floating-mode-line)
+                                           (header-line-format . floating-header-line)))
+        (cond
+         ((plist-member exwm--configurations setting)
+          (set-window-parameter
+           window prop
+           (or (plist-get exwm--configurations setting) 'none)))
+         ((not exwm--mwm-hints-decorations)
+          (set-window-parameter window prop 'none))))
 
       ;; We MUST redisplay with the frame visible here in order to correctly calculate the sizes.
       (redisplay)
@@ -413,18 +404,7 @@ configured dimension is invalid."
           (delete-frame exwm--floating-frame))))
     (with-current-buffer buffer
       (setq window-size-fixed nil
-            exwm--floating-frame nil)
-      (if (not (plist-member exwm--configurations 'tiling-mode-line))
-          (when exwm--mode-line-format
-            (setq mode-line-format exwm--mode-line-format))
-        (setq exwm--mode-line-format (or exwm--mode-line-format
-                                         mode-line-format)
-              mode-line-format (plist-get exwm--configurations
-                                          'tiling-mode-line)))
-      (if (not (plist-member exwm--configurations 'tiling-header-line))
-          (setq header-line-format nil)
-        (setq header-line-format (plist-get exwm--configurations
-                                            'tiling-header-line))))
+            exwm--floating-frame nil))
     ;; Only show X windows in normal state.
     (unless (exwm-layout--iconic-state-p)
       (pop-to-buffer-same-window buffer)))

@@ -343,6 +343,11 @@ This only works when procfs is mounted, which may not be the case on some BSDs."
                                ;; UnmapNotify/DestroyNotify event of the dock.
                                (exwm--get-client-event-mask)
                              xcb:EventMask:NoEvent)))
+        ;; Configure the tiling mode-line & header-line
+        (pcase-dolist (`(,var . ,setting) '((mode-line-format . tiling-mode-line)
+                                            (header-line-format . tiling-header-line)))
+          (when (plist-member exwm--configurations setting)
+            (set var (plist-get exwm--configurations setting))))
         ;; The window needs to be mapped
         (xcb:+request exwm--connection
             (make-instance 'xcb:MapWindow :window id))
