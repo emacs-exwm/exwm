@@ -1060,7 +1060,7 @@ where both ORIGINAL-KEY and SIMULATED-KEY are key sequences."
   (exwm--log)
   (make-local-variable 'exwm-input--simulation-keys)
   (use-local-map (copy-keymap exwm-mode-map))
-  (exwm-input--set-simulation-keys simulation-keys 'cache 'local))
+  (exwm-input--set-simulation-keys simulation-keys nil 'local))
 
 (cl-defun exwm-input-send-simulation-key (n)
   "Fake N key events according to the last input key sequence."
