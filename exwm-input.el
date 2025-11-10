@@ -147,6 +147,7 @@ This value should always be overwritten.")
 Current buffer will be the `exwm-mode' buffer when this hook runs.")
 
 (defvar exwm-workspace--current)
+(defvar exwm-workspace-warp-cursor)
 (declare-function exwm-floating--do-moveresize "exwm-floating.el"
                   (data _synthetic))
 (declare-function exwm-floating--start-moveresize "exwm-floating.el"
@@ -253,14 +254,15 @@ ARGS are additional arguments to CALLBACK."
         (setq frame (window-frame window)
               frame-xid (frame-parameter frame 'exwm-id))
         (unless (eq frame exwm-workspace--current)
-          (if (exwm-workspace--workspace-p frame)
-              ;; The X window is on another workspace.
-              (exwm-workspace-switch frame)
-            (with-current-buffer buffer
-              (when (and (derived-mode-p 'exwm-mode)
-                         (not (eq exwm--frame exwm-workspace--current)))
-                ;; The floating X window is on another workspace.
-                (exwm-workspace-switch exwm--frame)))))
+          (let (exwm-workspace-warp-cursor)
+            (if (exwm-workspace--workspace-p frame)
+                ;; The X window is on another workspace.
+                (exwm-workspace-switch frame)
+              (with-current-buffer buffer
+                (when (and (derived-mode-p 'exwm-mode)
+                           (not (eq exwm--frame exwm-workspace--current)))
+                  ;; The floating X window is on another workspace.
+                  (exwm-workspace-switch exwm--frame))))))
         ;; Send a fake MotionNotify event to Emacs.
         (setq edges (exwm--window-inside-pixel-edges window)
               fake-evt (make-instance 'xcb:MotionNotify
