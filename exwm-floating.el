@@ -235,21 +235,24 @@ configured dimension is invalid."
         (when (= 0 width) (setq width (/ screen-width 2)))
         (when (= 0 height) (setq height (/ screen-height 2)))
 
-        ;; Center floating windows unless they have explicit positions.
-        (when (and (or (= x 0) (= x screen-x))
-                   (or (= y 0) (= y screen-y)))
-          (if-let* ((parent-buffer (exwm--id->buffer exwm-transient-for))
-                    (parent-window (get-buffer-window parent-buffer))
-                    (parent-edges (exwm--window-inside-absolute-pixel-edges parent-window))
-                    (parent-width (- (elt parent-edges 2) (elt parent-edges 0)))
-                    (parent-height (- (elt parent-edges 3) (elt parent-edges 1)))
-                    ((and (<= width parent-width) (<= height parent-height))))
-              ;; Put at the center of leading window
-              (setq x (+ screen-x (/ (- parent-width  width) 2))
-                    y (+ screen-y (/ (- parent-height height) 2)))
-            ;; Put at the center of screen
-            (setq x (/ (- screen-width width) 2)
-                  y (/ (- screen-height height) 2))))
+        ;; Center floating windows on the current screen/window if they have no explicit position,
+        ;; or move adjust their position relative to the current screen if they do.
+        (if (and (= x 0) (= y 0))
+            (if-let* ((parent-buffer (exwm--id->buffer exwm-transient-for))
+                      (parent-window (get-buffer-window parent-buffer))
+                      (parent-edges (exwm--window-inside-absolute-pixel-edges parent-window))
+                      (parent-width (- (elt parent-edges 2) (elt parent-edges 0)))
+                      (parent-height (- (elt parent-edges 3) (elt parent-edges 1)))
+                      ((and (<= width parent-width) (<= height parent-height))))
+                ;; Put at the center of leading window
+                (setq x (+ screen-x (/ (- parent-width  width) 2))
+                      y (+ screen-y (/ (- parent-height height) 2)))
+              ;; Put at the center of screen
+              (setq x (/ (- screen-width width) 2)
+                    y (/ (- screen-height height) 2)))
+          ;; Adjust the requested position with respect to the current screen.
+          (setq x (+ x screen-x)
+                y (+ y screen-y)))
 
         ;; Translate the window size hints into the correct container size.
         ;; But avoid moving the window border off-screen in the process.
