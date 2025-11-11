@@ -274,14 +274,14 @@ configured dimension is invalid."
          ((> width screen-width)
           (setq x screen-x width screen-width))
          ;; Make sure at least half of the window is visible
-         ((> screen-x (+ x (/ width 2)) (+ screen-x screen-width))
+         ((not (< screen-x (+ x (/ width 2)) (+ screen-x screen-width)))
           (setq x (+ screen-x (/ (- screen-width width) 2)))))
         (cond
          ;; Too tall
          ((> height screen-height)
           (setq y screen-y height screen-height))
          ;; Make sure at least half of the window is visible
-         ((> screen-y (+ y (/ height 2)) (+ screen-y screen-height))
+         ((not (< screen-y (+ y (/ height 2)) (+ screen-y screen-height)))
           (setq y (+ screen-y (/ (- screen-height height) 2)))))
 
         ;; Apply user configuration.
