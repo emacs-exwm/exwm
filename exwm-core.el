@@ -281,6 +281,8 @@ If CONN is non-nil, use it instead of the value of the variable
 One of `line-mode' or `char-mode'.")
 (defvar-local exwm--input-mode 'line-mode
   "Actual input mode, i.e. whether mouse and keyboard are grabbed.")
+(defvar-local exwm--ping 0
+  "The number of pings received from the window.")
 ;; Properties
 (defvar-local exwm--desktop nil "_NET_WM_DESKTOP.")
 (defvar-local exwm-window-type nil "_NET_WM_WINDOW_TYPE.")

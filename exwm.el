@@ -754,11 +754,14 @@ DATA contains unmarshalled PropertyNotify event data."
                            :window id :data (vconcat props-new)))
         (xcb:flush exwm--connection)))))
 
-(defun exwm--on-wm-protocols (_id data)
-  "Handle WM_PROTOCOLS message with DATA."
-  (let ((type (elt data 0)))
+(defun exwm--on-wm-protocols (id data)
+  "Handle WM_PROTOCOLS message with DATA to window ID."
+  (let ((type (elt data 0))
+        (client (elt data 2)))
     (cond ((= type xcb:Atom:_NET_WM_PING)
-           (setq exwm-manage--ping-lock nil))
+             (when-let* (((eq id exwm--root))
+                         (buf (exwm--id->buffer client)))
+               (cl-incf (buffer-local-value 'exwm--ping buf))))
           (t (exwm--log "Unhandled WM_PROTOCOLS of type: %d" type)))))
 
 (defun exwm--on-wm-change-state (id data)

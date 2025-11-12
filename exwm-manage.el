@@ -148,9 +148,6 @@ want to match against EXWM internal variables such as `exwm-title',
 (defvar exwm-manage--frame-outer-id-list nil
   "List of window-outer-id's of all frames.")
 
-(defvar exwm-manage--ping-lock nil
-  "Non-nil indicates EXWM is pinging a window.")
-
 (defvar exwm-input--skip-buffer-list-update)
 (defvar exwm-input-prefix-keys)
 (defvar exwm-workspace--current)
@@ -531,6 +528,39 @@ manager is shutting down."
             (xcb:flush exwm--connection)
             (exwm-manage--manage-window i)))))))
 
+(defun exwm-manage--ping ()
+  "Send a ping to the current EXWM window.
+On reply, `exwm--ping' will be incremented."
+  (cl-assert exwm--id)
+  (xcb:+request exwm--connection
+      (make-instance 'xcb:SendEvent
+                     :propagate 0
+                     :destination exwm--id
+                     :event-mask xcb:EventMask:NoEvent
+                     :event (xcb:marshal
+                             (make-instance 'xcb:ewmh:_NET_WM_PING
+                                            :window exwm--id
+                                            :timestamp 0
+                                            :client-window exwm--id)
+                             exwm--connection)))
+  (xcb:flush exwm--connection))
+
+(defun exwm-manage--kill-buffer-timeout-function (last-ping buffer)
+  "Called from a timer to potentially kill unresponsive windows.
+
+BUFFFER is the BUFFER to potentially kill.
+Unless the BUFFER's `exwm--ping' greater than LAST-PING, the X window
+is considered to be unresponsive."
+  (when (buffer-live-p buffer)
+    (with-current-buffer buffer
+      (unless (< last-ping exwm--ping)
+        (when (yes-or-no-p (format "'%s' is not responding.  \
+Would you like to force close it? " (buffer-name)))
+          (setq exwm--protocols
+                (delq xcb:Atom:WM_DELETE_WINDOW
+                      exwm--protocols))
+          (kill-buffer buffer))))))
+
 (defun exwm-manage--kill-buffer-query-function ()
   "Run in `kill-buffer-query-functions'."
   (exwm--log "id=#x%x; buffer=%s" (or exwm--id 0) (current-buffer))
@@ -568,69 +598,42 @@ manager is shutting down."
       (xcb:flush exwm--connection)
       ;; Wait for DestroyNotify event.
       (throw 'return nil))
-    (let ((id exwm--id))
-      ;; Try to close the X window with WM_DELETE_WINDOW client message.
-      (xcb:+request exwm--connection
-          (make-instance 'xcb:icccm:SendEvent
-                         :destination id
-                         :event (xcb:marshal
-                                 (make-instance 'xcb:icccm:WM_DELETE_WINDOW
-                                                :window id)
-                                 exwm--connection)))
-      (xcb:flush exwm--connection)
-      ;;
-      (unless (memq xcb:Atom:_NET_WM_PING exwm--protocols)
-        ;; For X windows without _NET_WM_PING support, we'd better just
-        ;; wait for DestroyNotify events.
-        (throw 'return nil))
-      ;; Try to determine if the X window is dead with _NET_WM_PING.
-      (setq exwm-manage--ping-lock t)
-      (xcb:+request exwm--connection
-          (make-instance 'xcb:SendEvent
-                         :propagate 0
-                         :destination id
-                         :event-mask xcb:EventMask:NoEvent
-                         :event (xcb:marshal
-                                 (make-instance 'xcb:ewmh:_NET_WM_PING
-                                                :window id
-                                                :timestamp 0
-                                                :client-window id)
-                                 exwm--connection)))
-      (xcb:flush exwm--connection)
-      (with-timeout (exwm-manage-ping-timeout
-                     (if (y-or-n-p (format "'%s' is not responding.  \
-Would you like to kill it? "
-                                              (buffer-name)))
-                         (progn (exwm-manage--kill-client id)
-                                ;; Kill the unresponsive X window and
-                                ;; wait for DestroyNotify event.
-                                (throw 'return nil))
-                       ;; Give up.
-                       (throw 'return nil)))
-        (while (and exwm-manage--ping-lock
-                    (exwm--id->buffer id)) ;may have been destroyed.
-          (accept-process-output nil 0.1))
-        ;; Give up.
-        (throw 'return nil)))))
+    ;; Try to close the X window with WM_DELETE_WINDOW client message.
+    (xcb:+request exwm--connection
+        (make-instance 'xcb:icccm:SendEvent
+                       :destination exwm--id
+                       :event (xcb:marshal
+                               (make-instance 'xcb:icccm:WM_DELETE_WINDOW
+                                              :window exwm--id)
+                               exwm--connection)))
+    (xcb:flush exwm--connection)
+    ;; PING the window (if the PING protocol is supported) and
+    ;; schedule a future deletion in case the application doesn't
+    ;; respond. If the window doesn't support the PING protocol,
+    ;; there's nothing we can do here. The application may actually be
+    ;; responsive, it may just be refusing to close because it's
+    ;; asking the user to, e.g., save a document.
+    (when (memq xcb:Atom:_NET_WM_PING exwm--protocols)
+      (let ((last-ping exwm--ping))
+        (exwm-manage--ping)
+        (run-with-timer exwm-manage-ping-timeout nil
+                        #'exwm-manage--kill-buffer-timeout-function
+                        last-ping (current-buffer))))
+    ;; At this point, we don't close the buffer but instead wait
+    ;; for the window to close itself. Once that happens, we'll
+    ;; receive an event and kill the buffer.
+    nil))
 
 (defun exwm-manage--kill-client (&optional id)
-  "Kill X client ID.
-If ID is nil, kill X window corresponding to current buffer."
+  "Kill the X client associated with the window ID.
+If ID is nil, kill the X client associated with the current buffer.
+
+NOTE: This command is the equivalent of the xkill program. If you just
+want to close a window, delete the associated buffer."
   (unless id (setq id (exwm--buffer->id (current-buffer))))
   (exwm--log "id=#x%x" id)
-  (let* ((response (xcb:+request-unchecked+reply exwm--connection
-                       (make-instance 'xcb:ewmh:get-_NET_WM_PID :window id)))
-         (pid (and response (slot-value response 'value)))
-         (request (make-instance 'xcb:KillClient :resource id)))
-    (if (not pid)
-        (xcb:+request exwm--connection request)
-      ;; What if the PID is fake/wrong?
-      (signal-process pid 'SIGKILL)
-      ;; Ensure it's dead
-      (run-with-timer exwm-manage-ping-timeout nil
-                      (lambda ()
-                        (xcb:+request exwm--connection request))))
-    (xcb:flush exwm--connection)))
+  (xcb:+request exwm--connection (make-instance 'xcb:KillClient :resource id))
+  (xcb:flush exwm--connection))
 
 (defun exwm-manage--add-frame (frame)
   "Run in `after-make-frame-functions'.
