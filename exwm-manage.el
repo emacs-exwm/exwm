@@ -180,6 +180,17 @@ want to match against EXWM internal variables such as `exwm-title',
 (declare-function exwm-workspace--update-workareas "exwm-workspace.el" ())
 (declare-function exwm-workspace--workarea "exwm-workspace.el" (frame))
 
+(defun exwm-manage-get-pid (&optional id)
+  "Return the PID of the X window ID, if known.
+
+If ID is unspecified, the PID of the current window is returned."
+  (unless id (setq id (exwm--buffer->id (window-buffer))))
+  (when-let* ((response
+               (and id (xcb:+request-unchecked+reply exwm--connection
+                           (make-instance 'xcb:ewmh:get-_NET_WM_PID
+                                          :window id)))))
+    (slot-value response 'value)))
+
 (defun exwm-manage--update-geometry (id &optional force)
   "Update geometry of X window ID.
 Override current geometry if FORCE is non-nil."
@@ -240,10 +251,7 @@ match its current working directory.
 
 This only works when procfs is mounted, which may not be the case on some BSDs."
   (with-current-buffer (exwm--id->buffer id)
-    (if-let* ((response (xcb:+request-unchecked+reply exwm--connection
-                            (make-instance 'xcb:ewmh:get-_NET_WM_PID
-                                           :window id)))
-              (pid (slot-value response 'value))
+    (if-let* ((pid (exwm-manage-get-pid))
               (cwd (file-symlink-p (format "/proc/%d/cwd" pid)))
               ((file-accessible-directory-p cwd)))
         (setq default-directory (file-name-as-directory cwd))
