@@ -1377,12 +1377,21 @@ ALIST is an action alist, as accepted by function `display-buffer'."
 
 (defun exwm-workspace--get-next-workspace (frame)
   "Return the next workspace if workspace FRAME were removed.
-Return nil if FRAME is the only workspace."
+Return nil there are no other worksapces and/or all other workspaces
+are currently visible on other monitors."
   (let* ((index (exwm-workspace--position frame))
-         (lastp (= index (1- (exwm-workspace--count))))
-         (nextw (elt exwm-workspace--list (+ index (if lastp -1 +1)))))
-    (unless (eq frame nextw)
-      nextw)))
+         (count (exwm-workspace--count)))
+    (or
+     (cl-loop for i from (1+ index) below count
+              for nextw = (elt exwm-workspace--list i)
+              unless (or (eq frame nextw)
+                         (exwm-workspace--active-p nextw))
+              return nextw)
+     (cl-loop for i from (1- index) downto 0
+              for nextw = (elt exwm-workspace--list i)
+              unless (or (eq frame nextw)
+                         (exwm-workspace--active-p nextw))
+              return nextw))))
 
 (defun exwm-workspace--remove-frame-as-workspace (frame &optional quit)
   "Stop treating FRAME as a workspace.
