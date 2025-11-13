@@ -1411,8 +1411,11 @@ When QUIT is non-nil cleanup avoid communicating with the X server."
           (when (memq other-frame following-frames)
             (exwm-workspace--set-desktop (car pair)))))
       ;; If the current workspace is deleted, switch to next one.
-      (when (eq frame exwm-workspace--current)
-        (exwm-workspace-switch next-frame))))
+      (if (eq frame exwm-workspace--current)
+          (exwm-workspace-switch next-frame)
+        ;; Otherwise, update the workspace index.
+        (setq exwm-workspace-current-index
+              (exwm-workspace--position next-frame)))))
   ;; Reparent out the frame.
   (let ((outer-id (frame-parameter frame 'exwm-outer-id)))
     (xcb:+request exwm--connection
