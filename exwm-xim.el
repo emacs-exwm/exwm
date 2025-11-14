@@ -170,33 +170,31 @@ DATA contains unmarshalled SelectionRequest event data.
 
 Such events would be received when clients query for LOCALES or TRANSPORT."
   (exwm--log)
-  (let ((evt (xcb:unmarshal-new 'xcb:SelectionRequest data))
-        value fake-event)
-    (with-slots (time requestor selection target property) evt
-      (setq value (cond ((= target exwm-xim--LOCALES)
-                         ;; Return supported locales.
-                         exwm-xim--locales)
-                        ((= target exwm-xim--TRANSPORT)
-                         ;; Use XIM over an X connection.
-                         "@transport=X/")))
-      (when value
-        ;; Change the property.
-        (xcb:+request exwm-xim--conn
-            (make-instance 'xcb:ChangeProperty
-                           :mode xcb:PropMode:Replace
-                           :window requestor
-                           :property property
-                           :type target
-                           :format 8
-                           :data-len (length value)
-                           :data value))
-        ;; Send a SelectionNotify event.
-        (setq fake-event (make-instance 'xcb:SelectionNotify
-                                        :time time
-                                        :requestor requestor
-                                        :selection selection
-                                        :target target
-                                        :property property))
+  (with-slots (time requestor selection target property)
+      (xcb:unmarshal-new 'xcb:SelectionRequest data)
+    (when-let* ((value (cond ((= target exwm-xim--LOCALES)
+                              ;; Return supported locales.
+                              exwm-xim--locales)
+                             ((= target exwm-xim--TRANSPORT)
+                              ;; Use XIM over an X connection.
+                              "@transport=X/"))))
+      ;; Change the property.
+      (xcb:+request exwm-xim--conn
+          (make-instance 'xcb:ChangeProperty
+                         :mode xcb:PropMode:Replace
+                         :window requestor
+                         :property property
+                         :type target
+                         :format 8
+                         :data-len (length value)
+                         :data value))
+      ;; Send a SelectionNotify event.
+      (let ((fake-event (make-instance 'xcb:SelectionNotify
+                                       :time time
+                                       :requestor requestor
+                                       :selection selection
+                                       :target target
+                                       :property property)))
         (xcb:+request exwm-xim--conn
             (make-instance 'xcb:SendEvent
                            :propagate 0
@@ -212,17 +210,17 @@ Such events would be received when clients request for _XIM_XCONNECT.
 A new X connection and server window would be created to communicate with
 this client."
   (exwm--log)
-  (let ((evt (xcb:unmarshal-new 'xcb:ClientMessage data))
-        conn client-xwin server-xwin)
-    (with-slots (window type data) evt
-      (unless (= type exwm-xim--_XIM_XCONNECT)
-        ;; Only handle _XIM_XCONNECT.
-        (exwm--log "Ignore ClientMessage %s" type)
-        (cl-return-from exwm-xim--on-ClientMessage-0))
-      (setq client-xwin (elt (slot-value data 'data32) 0)
-            ;; Create a new X connection and a new server window.
-            conn (xcb:connect)
-            server-xwin (xcb:generate-id conn))
+  (let* ((evt (xcb:unmarshal-new 'xcb:ClientMessage data))
+         (type (slot-value evt 'type))
+         (data (slot-value evt 'data)))
+    (unless (= type exwm-xim--_XIM_XCONNECT)
+      ;; Only handle _XIM_XCONNECT.
+      (exwm--log "Ignore ClientMessage %s" type)
+      (cl-return-from exwm-xim--on-ClientMessage-0))
+    (let* ((client-xwin (elt (slot-value data 'data32) 0))
+           ;; Create a new X connection and a new server window.
+           (conn (xcb:connect))
+           (server-xwin (xcb:generate-id conn)))
       (set-process-query-on-exit-flag (slot-value conn 'process) nil)
       ;; Store this client.
       (plist-put exwm-xim--server-client-plist server-xwin
@@ -254,7 +252,7 @@ this client."
                          :override-redirect 1))
       (xcb:flush conn)
       ;; Send connection establishment ClientMessage.
-      (setf window client-xwin
+      (setf (slot-value evt 'window) client-xwin
             (slot-value data 'data32) `(,server-xwin 0 0 0 0))
       (slot-makeunbound data 'data8)
       (slot-makeunbound data 'data16)
@@ -272,16 +270,15 @@ this client."
 Such events would be received when clients request for _XIM_PROTOCOL.
 The actual XIM request is in client message data or a property."
   (exwm--log)
-  (let ((evt (xcb:unmarshal-new 'xcb:ClientMessage data))
-        conn client-xwin server-xwin)
-    (with-slots (format window type data) evt
-      (unless (= type exwm-xim--_XIM_PROTOCOL)
-        (exwm--log "Ignore ClientMessage %s" type)
-        (cl-return-from exwm-xim--on-ClientMessage))
-      (setq server-xwin window
-            conn (plist-get exwm-xim--server-client-plist server-xwin)
-            client-xwin (elt conn 1)
-            conn (elt conn 0))
+  (with-slots (format window type data)
+      (xcb:unmarshal-new 'xcb:ClientMessage data)
+    (unless (= type exwm-xim--_XIM_PROTOCOL)
+      (exwm--log "Ignore ClientMessage %s" type)
+      (cl-return-from exwm-xim--on-ClientMessage))
+    (let* ((server-xwin window)
+           (client-conn (plist-get exwm-xim--server-client-plist server-xwin))
+           (client-xwin (elt client-conn 1))
+           (conn (elt client-conn 0)))
       (cond ((= format 8)
              ;; Data.
              (exwm-xim--on-request (vconcat (slot-value data 'data8))
@@ -654,20 +651,19 @@ the request data or where to fetch the data."
 Such event would be received when the client window is destroyed."
   (exwm--log)
   (unless synthetic
-    (let ((evt (xcb:unmarshal-new 'xcb:DestroyNotify data))
-          conn client-xwin server-xwin)
-      (setq client-xwin (slot-value evt 'window)
-            server-xwin (plist-get exwm-xim--client-server-plist client-xwin))
-      (when server-xwin
-        (setq conn (aref (plist-get exwm-xim--server-client-plist server-xwin)
-                         0))
+    (when-let* ((evt (xcb:unmarshal-new 'xcb:DestroyNotify data))
+                (client-xwin (slot-value evt 'window))
+                (server-xwin (plist-get exwm-xim--client-server-plist
+                                        client-xwin))
+                (conn (aref (plist-get exwm-xim--server-client-plist
+                                        server-xwin)
+                            0)))
         (cl-remf exwm-xim--server-client-plist server-xwin)
         (cl-remf exwm-xim--client-server-plist client-xwin)
         ;; Destroy the communication window & connection.
         (xcb:+request conn
-            (make-instance 'xcb:DestroyWindow
-                           :window server-xwin))
-        (xcb:disconnect conn)))))
+            (make-instance 'xcb:DestroyWindow :window server-xwin))
+        (xcb:disconnect conn))))
 
 (cl-defun exwm-xim--init ()
   "Initialize the XIM module."
