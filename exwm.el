@@ -702,10 +702,11 @@ DATA contains unmarshalled PropertyNotify event data."
 
 (defun exwm--on-net-wm-desktop (id data)
   "Handle _NET_WM_DESKTOP message with ID and DATA."
-  (let ((buffer (exwm--id->buffer id)))
+  (let ((buffer (exwm--id->buffer id))
+        (workspace (elt data 0)))
     (when (and (buffer-live-p buffer)
-               (not (= id #xffffffff))) ;; TODO #172
-      (exwm-workspace-move-window (elt data 0) id))))
+               (not (= workspace #xffffffff))) ;; TODO #172
+      (exwm-workspace-move-window workspace id))))
 
 (defun exwm--on-net-wm-state (id data)
   "Handle _NET_WM_STATE message with ID and DATA."
