@@ -797,17 +797,20 @@ INDEX must not exceed the current number of workspaces."
   "Delete the workspace FRAME-OR-INDEX."
   (interactive)
   (exwm--log "%s" frame-or-index)
-  (when (< 1 (exwm-workspace--count))
-    (let ((frame (if frame-or-index
-                     (exwm-workspace--workspace-from-frame-or-index
-                      frame-or-index)
-                   exwm-workspace--current)))
-      ;; Transfer over any surrogate minibuffers before trying to delete the workspace.
-      (let ((minibuf (minibuffer-window frame))
-            (newminibuf (minibuffer-window (exwm-workspace--get-next-workspace frame))))
-        (dolist (f (filtered-frame-list (lambda (f) (eq (frame-parameter f 'minibuffer) minibuf))))
-          (set-frame-parameter f 'minibuffer newminibuf)))
-      (delete-frame frame))))
+  (if-let* ((frame (if frame-or-index
+                       (exwm-workspace--workspace-from-frame-or-index
+                        frame-or-index)
+                     exwm-workspace--current))
+            (next-frame (exwm-workspace--get-next-workspace
+                         frame (not (exwm-workspace--active-p frame)))))
+      (progn
+        ;; Transfer over any surrogate minibuffers before trying to delete the workspace.
+        (let ((minibuf (minibuffer-window frame))
+              (newminibuf (minibuffer-window next-frame)))
+          (dolist (f (filtered-frame-list (lambda (f) (eq (frame-parameter f 'minibuffer) minibuf))))
+            (set-frame-parameter f 'minibuffer newminibuf)))
+        (delete-frame frame))
+    (error "All other workspaces are active")))
 
 (defun exwm-workspace--set-desktop (id)
   "Set _NET_WM_DESKTOP for X window ID."
@@ -1375,22 +1378,24 @@ ALIST is an action alist, as accepted by function `display-buffer'."
                frame exwm-workspace-current-index original-index))
     (run-hooks 'exwm-workspace-list-change-hook)))
 
-(defun exwm-workspace--get-next-workspace (frame)
+(defun exwm-workspace--get-next-workspace (frame &optional allow-active)
   "Return the next workspace if workspace FRAME were removed.
-Return nil there are no other worksapces and/or all other workspaces
-are currently visible on other monitors."
+Return nil there are no other worksapces or ALLOW-ACTIVE is non-nil and
+all other workspaces are currently visible on other monitors."
   (let* ((index (exwm-workspace--position frame))
          (count (exwm-workspace--count)))
     (or
      (cl-loop for i from (1+ index) below count
               for nextw = (elt exwm-workspace--list i)
-              unless (or (eq frame nextw)
-                         (exwm-workspace--active-p nextw))
+              when (and (not (eq frame nextw))
+                        (or allow-active
+                            (exwm-workspace--active-p nextw)))
               return nextw)
      (cl-loop for i from (1- index) downto 0
               for nextw = (elt exwm-workspace--list i)
-              unless (or (eq frame nextw)
-                         (exwm-workspace--active-p nextw))
+              when (and (not (eq frame nextw))
+                        (or allow-active
+                            (exwm-workspace--active-p nextw)))
               return nextw))))
 
 (defun exwm-workspace--remove-frame-as-workspace (frame &optional quit)
