@@ -800,10 +800,8 @@ RAW-DATA contains unmarshalled ClientMessage event data."
   "Handle SelectionClear events.
 DATA contains unmarshalled SelectionClear event data."
   (exwm--log)
-  (let ((obj (xcb:unmarshal-new 'xcb:SelectionClear data))
-        owner selection)
-    (setq owner (slot-value obj 'owner)
-          selection (slot-value obj 'selection))
+  (with-slots (owner selection)
+      (xcb:unmarshal-new 'xcb:SelectionClear data)
     (when (and (eq owner exwm--wmsn-window)
                (eq selection xcb:Atom:WM_S0))
       (exwm-wm-mode -1))))

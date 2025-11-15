@@ -809,9 +809,9 @@ DATA contains unmarshalled DestroyNotify event data.
 SYNTHETIC indicates whether the event is a synthetic event."
   (unless synthetic
     (exwm--log)
-    (let ((obj (xcb:unmarshal-new 'xcb:DestroyNotify data)))
-      (exwm--log "#x%x" (slot-value obj 'window))
-      (exwm-manage--unmanage-window (slot-value obj 'window)))))
+    (with-slots (window) (xcb:unmarshal-new 'xcb:DestroyNotify data)
+      (exwm--log "#x%x" window)
+      (exwm-manage--unmanage-window window))))
 
 (defun exwm-manage--init ()
   "Initialize manage module."

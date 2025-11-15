@@ -227,11 +227,11 @@ ARGS are additional arguments to CALLBACK."
   "Handle PropertyNotify events with DATA."
   (exwm--log)
   (when exwm-input--timestamp-callback
-    (let ((obj (xcb:unmarshal-new 'xcb:PropertyNotify data)))
-      (when (= exwm-input--timestamp-window
-               (slot-value obj 'window))
+    (with-slots (window time)
+        (xcb:unmarshal-new 'xcb:PropertyNotify data)
+      (when (= exwm-input--timestamp-window window)
         (apply (car exwm-input--timestamp-callback)
-               (slot-value obj 'time)
+               time
                (cdr exwm-input--timestamp-callback))
         (setq exwm-input--timestamp-callback nil)))))
 
