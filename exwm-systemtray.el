@@ -134,25 +134,36 @@ The width is useful to adjust the tab-bar alignment when
 
 (defvar xcb:Atom:_NET_SYSTEM_TRAY_S0)
 
+(defun exwm-systemtray--get-geometry (icon)
+  "Return the geometry (width . height) of ICON.
+The returned geometry will be scaled to fit the systemtray."
+  (let (width* height*)
+    (with-slots (width height)
+        (xcb:+request-unchecked+reply exwm-systemtray--connection
+            (make-instance 'xcb:GetGeometry :drawable icon))
+      (setq height* exwm-systemtray-height
+            width* (round (* width (/ (float height*) height))))
+      (when (< width* exwm-systemtray--icon-min-size)
+        (setq width* exwm-systemtray--icon-min-size
+              height* (round (* height (/ (float width*) width)))))
+      (exwm--log "Resize from %dx%d to %dx%d"
+                 width height width* height*))
+    (cons width* height*)))
+
 (defun exwm-systemtray--embed (icon)
   "Embed an ICON."
   (exwm--log "Try to embed #x%x" icon)
-  (let ((info (xcb:+request-unchecked+reply exwm-systemtray--connection
-                  (make-instance 'xcb:xembed:get-_XEMBED_INFO
-                                 :window icon)))
-        width* height* visible)
-    (when info
-      (exwm--log "Embed #x%x" icon)
-      (with-slots (width height)
-          (xcb:+request-unchecked+reply exwm-systemtray--connection
-              (make-instance 'xcb:GetGeometry :drawable icon))
-        (setq height* exwm-systemtray-height
-              width* (round (* width (/ (float height*) height))))
-        (when (< width* exwm-systemtray--icon-min-size)
-          (setq width* exwm-systemtray--icon-min-size
-                height* (round (* height (/ (float width*) width)))))
-        (exwm--log "Resize from %dx%d to %dx%d"
-                   width height width* height*))
+  (when-let* ((info (xcb:+request-unchecked+reply
+                        exwm-systemtray--connection
+                        (make-instance 'xcb:xembed:get-_XEMBED_INFO
+                                       :window icon))))
+    (exwm--log "Embed #x%x" icon)
+    (pcase-let
+        ((visible (if-let* ((flags (slot-value info 'flags)))
+                      (/= 0 (logand flags xcb:xembed:MAPPED))
+                    t)) ; default to visible.
+         (`(,width . ,height)
+          (exwm-systemtray--get-geometry icon)))
       ;; Add this icon to save-set.
       (xcb:+request exwm-systemtray--connection
           (make-instance 'xcb:ChangeSaveSet
@@ -165,7 +176,7 @@ The width is useful to adjust the tab-bar alignment when
                          :parent exwm-systemtray--embedder-window
                          :x 0
                          ;; Vertically centered.
-                         :y (/ (- exwm-systemtray-height height*) 2)))
+                         :y (/ (- exwm-systemtray-height height) 2)))
       ;; Resize the icon.
       (xcb:+request exwm-systemtray--connection
           (make-instance 'xcb:ConfigureWindow
@@ -173,8 +184,8 @@ The width is useful to adjust the tab-bar alignment when
                          :value-mask (logior xcb:ConfigWindow:Width
                                              xcb:ConfigWindow:Height
                                              xcb:ConfigWindow:BorderWidth)
-                         :width width*
-                         :height height*
+                         :width width
+                         :height height
                          :border-width 0))
       ;; Set event mask.
       (xcb:+request exwm-systemtray--connection
@@ -194,12 +205,6 @@ The width is useful to adjust the tab-bar alignment when
                            :key xcb:Grab:Any
                            :pointer-mode xcb:GrabMode:Async
                            :keyboard-mode xcb:GrabMode:Async)))
-      (setq visible (slot-value info 'flags))
-      (if visible
-          (setq visible
-                (/= 0 (logand (slot-value info 'flags) xcb:xembed:MAPPED)))
-        ;; Default to visible.
-        (setq visible t))
       (when visible
         (exwm--log "Map the window")
         (xcb:+request exwm-systemtray--connection
@@ -217,8 +222,8 @@ The width is useful to adjust the tab-bar alignment when
                                          :version 0)
                           exwm-systemtray--connection)))
       (push `(,icon . ,(make-instance 'exwm-systemtray--icon
-                                      :width width*
-                                      :height height*
+                                      :width width
+                                      :height height
                                       :visible visible))
             exwm-systemtray--list)
       (exwm-systemtray--refresh))))
@@ -368,73 +373,66 @@ Argument DATA contains the raw event data."
   "Resize the tray icon on ResizeRequest.
 Argument DATA contains the raw event data."
   (exwm--log)
-  (let ((obj (xcb:unmarshal-new 'xcb:ResizeRequest data))
-        attr)
-    (with-slots (window width height) obj
-      (when (setq attr (cdr (assoc window exwm-systemtray--list)))
-        (with-slots ((width* width)
-                     (height* height))
-            attr
-          (setq height* exwm-systemtray-height
-                width* (round (* width (/ (float height*) height))))
-          (when (< width* exwm-systemtray--icon-min-size)
-            (setq width* exwm-systemtray--icon-min-size
-                  height* (round (* height (/ (float width*) width)))))
-          (xcb:+request exwm-systemtray--connection
-              (make-instance 'xcb:ConfigureWindow
-                             :window window
-                             :value-mask (logior xcb:ConfigWindow:Y
-                                                 xcb:ConfigWindow:Width
-                                                 xcb:ConfigWindow:Height)
-                             ;; Vertically centered.
-                             :y (/ (- exwm-systemtray-height height*) 2)
-                             :width width*
-                             :height height*)))
-        (exwm-systemtray--refresh)))))
+  (with-slots (window width height)
+      (xcb:unmarshal-new 'xcb:ResizeRequest data)
+    (when-let* ((attr (alist-get window exwm-systemtray--list)))
+      (with-slots ((width* width) (height* height)) attr
+        (setq height* exwm-systemtray-height
+              width* (round (* width (/ (float height*) height))))
+        (when (< width* exwm-systemtray--icon-min-size)
+          (setq width* exwm-systemtray--icon-min-size
+                height* (round (* height (/ (float width*) width)))))
+        (xcb:+request exwm-systemtray--connection
+            (make-instance 'xcb:ConfigureWindow
+                           :window window
+                           :value-mask (logior xcb:ConfigWindow:Y
+                                               xcb:ConfigWindow:Width
+                                               xcb:ConfigWindow:Height)
+                           ;; Vertically centered.
+                           :y (/ (- exwm-systemtray-height height*) 2)
+                           :width width*
+                           :height height*)))
+      (exwm-systemtray--refresh))))
 
 (defun exwm-systemtray--on-PropertyNotify (data _synthetic)
   "Map/Unmap the tray icon on PropertyNotify.
 Argument DATA contains the raw event data."
   (exwm--log)
-  (let ((obj (xcb:unmarshal-new 'xcb:PropertyNotify data))
-        attr info visible)
-    (with-slots (window atom state) obj
-      (when (and (eq state xcb:Property:NewValue)
-                 (eq atom xcb:Atom:_XEMBED_INFO)
-                 (setq attr (cdr (assoc window exwm-systemtray--list))))
-        (setq info (xcb:+request-unchecked+reply exwm-systemtray--connection
-                       (make-instance 'xcb:xembed:get-_XEMBED_INFO
-                                      :window window)))
-        (when info
-          (setq visible (/= 0 (logand (slot-value info 'flags)
-                                      xcb:xembed:MAPPED)))
-          (exwm--log "#x%x visible? %s" window visible)
-          (if visible
-              (xcb:+request exwm-systemtray--connection
-                  (make-instance 'xcb:MapWindow :window window))
-            (xcb:+request exwm-systemtray--connection
-                (make-instance 'xcb:UnmapWindow :window window)))
-          (setf (slot-value attr 'visible) visible)
-          (exwm-systemtray--refresh))))))
+  (with-slots (window atom state)
+      (xcb:unmarshal-new 'xcb:PropertyNotify data)
+    (when-let* ((_(eq state xcb:Property:NewValue))
+                (_(eq atom xcb:Atom:_XEMBED_INFO))
+                (attr (alist-get window exwm-systemtray--list))
+                (info (xcb:+request-unchecked+reply
+                          exwm-systemtray--connection
+                          (make-instance 'xcb:xembed:get-_XEMBED_INFO
+                                         :window window))))
+      (let ((visible (/= 0 (logand (slot-value info 'flags)
+                                   xcb:xembed:MAPPED))))
+        (exwm--log "#x%x visible? %s" window visible)
+        (xcb:+request exwm-systemtray--connection
+            (make-instance (if visible 'xcb:MapWindow 'xcb:UnmapWindow)
+                           :window window))
+        (setf (slot-value attr 'visible) visible)
+        (exwm-systemtray--refresh)))))
 
 (defun exwm-systemtray--on-ClientMessage (data _synthetic)
   "Handle client messages.
 Argument DATA contains the raw event data."
-  (let ((obj (xcb:unmarshal-new 'xcb:ClientMessage data))
-        opcode data32)
+  (let ((obj (xcb:unmarshal-new 'xcb:ClientMessage data)))
     (with-slots (window type data) obj
       (when (eq type xcb:Atom:_NET_SYSTEM_TRAY_OPCODE)
-        (setq data32 (slot-value data 'data32)
-              opcode (elt data32 1))
-        (exwm--log "opcode: %s" opcode)
-        (cond ((= opcode xcb:systemtray:opcode:REQUEST-DOCK)
-               (unless (assoc (elt data32 2) exwm-systemtray--list)
-                 (exwm-systemtray--embed (elt data32 2))))
-              ;; Not implemented (rarely used nowadays).
-              ((or (= opcode xcb:systemtray:opcode:BEGIN-MESSAGE)
-                   (= opcode xcb:systemtray:opcode:CANCEL-MESSAGE)))
-              (t
-               (exwm--log "Unknown opcode message: %s" obj)))))))
+        (let* ((data32 (slot-value data 'data32))
+               (opcode (elt data32 1)))
+          (exwm--log "opcode: %s" opcode)
+          (cond ((= opcode xcb:systemtray:opcode:REQUEST-DOCK)
+                 (unless (assoc (elt data32 2) exwm-systemtray--list)
+                   (exwm-systemtray--embed (elt data32 2))))
+                ;; Not implemented (rarely used nowadays).
+                ((or (= opcode xcb:systemtray:opcode:BEGIN-MESSAGE)
+                     (= opcode xcb:systemtray:opcode:CANCEL-MESSAGE)))
+                (t
+                 (exwm--log "Unknown opcode message: %s" obj))))))))
 
 (defun exwm-systemtray--on-KeyPress (data _synthetic)
   "Forward all KeyPress events to Emacs frame.
