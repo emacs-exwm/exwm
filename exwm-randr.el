@@ -295,11 +295,11 @@ In a mirroring setup some monitors overlap and should be treated as one."
 
 Run `exwm-randr-screen-change-hook' (usually user scripts to configure RandR)."
   (exwm--log)
-  (let ((evt (xcb:unmarshal-new 'xcb:randr:ScreenChangeNotify data)))
-    (let ((ts (slot-value evt 'config-timestamp)))
-      (unless (equal ts exwm-randr--prev-screen-change-timestamp)
-        (setq exwm-randr--prev-screen-change-timestamp ts)
-        (run-hooks 'exwm-randr-screen-change-hook)))))
+  (let* ((evt (xcb:unmarshal-new 'xcb:randr:ScreenChangeNotify data))
+         (ts (slot-value evt 'config-timestamp)))
+    (unless (equal ts exwm-randr--prev-screen-change-timestamp)
+      (setq exwm-randr--prev-screen-change-timestamp ts)
+      (run-hooks 'exwm-randr-screen-change-hook))))
 
 (defun exwm-randr--on-Notify (data _synthetic)
   "Handle `CrtcChangeNotify' and `OutputChangeNotify' events with DATA.
