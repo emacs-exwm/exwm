@@ -753,55 +753,55 @@ border-width: %d; sibling: #x%x; stack-mode: %d"
 (defun exwm-manage--on-MapRequest (data _synthetic)
   "Handle MapRequest event.
 DATA contains unmarshalled MapRequest event data."
-  (let ((obj (xcb:unmarshal-new 'xcb:MapRequest data)))
-    (with-slots (parent window) obj
-      (exwm--log "id=#x%x parent=#x%x" window parent)
-      (if (assoc window exwm--id-buffer-alist)
-          (with-current-buffer (exwm--id->buffer window)
-            (if (exwm-layout--iconic-state-p)
-                ;; State change: iconic => normal.
-                (when (eq exwm--frame exwm-workspace--current)
-                  (pop-to-buffer-same-window (current-buffer)))
-              (exwm--log "#x%x is already managed" window)))
-        (if (/= exwm--root parent)
-            (progn (xcb:+request exwm--connection
-                       (make-instance 'xcb:MapWindow :window window))
-                   (xcb:flush exwm--connection))
-          (exwm--log "#x%x" window)
-          (exwm-manage--manage-window window))))))
+  (with-slots (parent window)
+      (xcb:unmarshal-new 'xcb:MapRequest data)
+    (exwm--log "id=#x%x parent=#x%x" window parent)
+    (if (assoc window exwm--id-buffer-alist)
+        (with-current-buffer (exwm--id->buffer window)
+          (if (exwm-layout--iconic-state-p)
+              ;; State change: iconic => normal.
+              (when (eq exwm--frame exwm-workspace--current)
+                (pop-to-buffer-same-window (current-buffer)))
+            (exwm--log "#x%x is already managed" window)))
+      (if (/= exwm--root parent)
+          (progn (xcb:+request exwm--connection
+                     (make-instance 'xcb:MapWindow :window window))
+                 (xcb:flush exwm--connection))
+        (exwm--log "#x%x" window)
+        (exwm-manage--manage-window window)))))
 
 (defun exwm-manage--on-UnmapNotify (data _synthetic)
   "Handle UnmapNotify event.
 DATA contains unmarshalled UnmapNotify event data."
-  (let ((obj (xcb:unmarshal-new 'xcb:UnmapNotify data)))
-    (with-slots (window) obj
-      (exwm--log "id=#x%x" window)
-      (exwm-manage--unmanage-window window t))))
+  (with-slots (window)
+      (xcb:unmarshal-new 'xcb:UnmapNotify data)
+    (exwm--log "id=#x%x" window)
+    (exwm-manage--unmanage-window window t)))
 
 (defun exwm-manage--on-MapNotify (data _synthetic)
   "Handle MapNotify event.
 DATA contains unmarshalled MapNotify event data."
-  (let ((obj (xcb:unmarshal-new 'xcb:MapNotify data)))
-    (with-slots (window) obj
-      (when (assoc window exwm--id-buffer-alist)
-        (exwm--log "id=#x%x" window)
-        ;; With this we ensure that a "window hierarchy change" happens after
-        ;; mapping the window, as some servers (XQuartz) do not generate it.
-        (with-current-buffer (exwm--id->buffer window)
-          (if exwm--floating-frame
-              (xcb:+request exwm--connection
-                  (make-instance 'xcb:ConfigureWindow
-                                 :window window
-                                 :value-mask xcb:ConfigWindow:StackMode
-                                 :stack-mode xcb:StackMode:Above))
+  (with-slots (window)
+      (xcb:unmarshal-new 'xcb:MapNotify data)
+    (when (assoc window exwm--id-buffer-alist)
+      (exwm--log "id=#x%x" window)
+      ;; With this we ensure that a "window hierarchy change" happens after
+      ;; mapping the window, as some servers (XQuartz) do not generate it.
+      (with-current-buffer (exwm--id->buffer window)
+        (if exwm--floating-frame
             (xcb:+request exwm--connection
                 (make-instance 'xcb:ConfigureWindow
                                :window window
-                               :value-mask (logior xcb:ConfigWindow:Sibling
-                                                   xcb:ConfigWindow:StackMode)
-                               :sibling exwm--guide-window
-                               :stack-mode xcb:StackMode:Above))))
-        (xcb:flush exwm--connection)))))
+                               :value-mask xcb:ConfigWindow:StackMode
+                               :stack-mode xcb:StackMode:Above))
+          (xcb:+request exwm--connection
+              (make-instance 'xcb:ConfigureWindow
+                             :window window
+                             :value-mask (logior xcb:ConfigWindow:Sibling
+                                                 xcb:ConfigWindow:StackMode)
+                             :sibling exwm--guide-window
+                             :stack-mode xcb:StackMode:Above))))
+      (xcb:flush exwm--connection))))
 
 (defun exwm-manage--on-DestroyNotify (data synthetic)
   "Handle DestroyNotify event.

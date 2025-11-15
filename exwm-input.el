@@ -477,9 +477,8 @@ attempt later."
 (defun exwm-input--on-CreateNotify (data _synthetic)
   "Handle CreateNotify events with DATA."
   (exwm--log)
-  (let ((evt (xcb:unmarshal-new 'xcb:CreateNotify data)))
-    (with-slots (window) evt
-      (exwm-input--grab-global-prefix-keys window))))
+  (with-slots (window) (xcb:unmarshal-new 'xcb:CreateNotify data)
+    (exwm-input--grab-global-prefix-keys window)))
 
 (defun exwm-input--update-global-prefix-keys ()
   "Update `exwm-input--global-prefix-keys'."

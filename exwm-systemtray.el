@@ -349,20 +349,20 @@ indicate how to support actual transparency."
   "Unembed icons on DestroyNotify.
 Argument DATA contains the raw event data."
   (exwm--log)
-  (let ((obj (xcb:unmarshal-new 'xcb:DestroyNotify data)))
-    (with-slots (window) obj
-      (when (assoc window exwm-systemtray--list)
-        (exwm-systemtray--unembed window)))))
+  (with-slots (window)
+      (xcb:unmarshal-new 'xcb:DestroyNotify data)
+    (when (assoc window exwm-systemtray--list)
+      (exwm-systemtray--unembed window))))
 
 (defun exwm-systemtray--on-ReparentNotify (data _synthetic)
   "Unembed icons on ReparentNotify.
 Argument DATA contains the raw event data."
   (exwm--log)
-  (let ((obj (xcb:unmarshal-new 'xcb:ReparentNotify data)))
-    (with-slots (window parent) obj
-      (when (and (/= parent exwm-systemtray--embedder-window)
-                 (assoc window exwm-systemtray--list))
-        (exwm-systemtray--unembed window)))))
+  (with-slots (window parent)
+      (xcb:unmarshal-new 'xcb:ReparentNotify data)
+    (when (and (/= parent exwm-systemtray--embedder-window)
+               (assoc window exwm-systemtray--list))
+      (exwm-systemtray--unembed window))))
 
 (defun exwm-systemtray--on-ResizeRequest (data _synthetic)
   "Resize the tray icon on ResizeRequest.

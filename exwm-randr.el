@@ -324,10 +324,9 @@ Refresh when any CRTC/output changes."
 
 Refresh when any RandR 1.5 monitor changes."
   (exwm--log)
-  (let ((evt (xcb:unmarshal-new 'xcb:ConfigureNotify data)))
-    (with-slots (window) evt
-      (when (eq window exwm--root)
-        (exwm-randr-refresh)))))
+  (with-slots (window) (xcb:unmarshal-new 'xcb:ConfigureNotify data)
+    (when (eq window exwm--root)
+      (exwm-randr-refresh))))
 
 (cl-defun exwm-randr--init ()
   "Initialize RandR extension and EXWM RandR module."
