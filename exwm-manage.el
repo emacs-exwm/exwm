@@ -656,86 +656,86 @@ FRAME is the frame to be deleted."
           (delq (string-to-number (frame-parameter frame 'outer-window-id))
                 exwm-manage--frame-outer-id-list))))
 
+(defun exwm-manage--send-ConfigureNotify (window x y width height)
+  "Send a ConfigureNotify event to WINDOW with X Y WIDTH and HEIGHT."
+  (exwm--log "Reply with ConfigureNotify: %dx%d+%d+%d" width height x y)
+  (xcb:+request exwm--connection
+      (make-instance 'xcb:SendEvent
+                     :propagate 0 :destination window
+                     :event-mask xcb:EventMask:StructureNotify
+                     :event (xcb:marshal
+                             (make-instance
+                              'xcb:ConfigureNotify
+                              :event window :window window
+                              :above-sibling xcb:Window:None
+                              :x x :y y
+                              :width width
+                              :height height
+                              :border-width 0 :override-redirect 0)
+                             exwm--connection))))
+
 (defun exwm-manage--on-ConfigureRequest (data _synthetic)
   "Handle ConfigureRequest event.
 DATA contains unmarshalled ConfigureRequest event data."
   (exwm--log)
-  (let ((obj (xcb:unmarshal-new 'xcb:ConfigureRequest data))
-        buffer edges width-delta height-delta)
-    (with-slots (window x y width height
-                        border-width sibling stack-mode value-mask)
-        obj
-      (exwm--log "#x%x (#x%x) @%dx%d%+d%+d; \
+  (with-slots (window x y width height
+                      border-width sibling stack-mode value-mask)
+      (xcb:unmarshal-new 'xcb:ConfigureRequest data)
+    (exwm--log "#x%x (#x%x) @%dx%d%+d%+d; \
 border-width: %d; sibling: #x%x; stack-mode: %d"
-                 window value-mask width height x y
-                 border-width sibling stack-mode)
-      (if (and (setq buffer (exwm--id->buffer window))
-               (with-current-buffer buffer
-                 (or (exwm-layout--fullscreen-p)
-                     ;; Make sure it's a floating X window wanting to resize
-                     ;; itself.
-                     (not exwm--floating-frame))))
-          ;; Send client message for managed windows
-          (with-current-buffer buffer
-            (setq edges
-                  (if (exwm-layout--fullscreen-p)
-                      (with-slots (x y width height)
-                          (exwm-workspace--get-geometry exwm--frame)
-                        (list x y (+ x width) (+ y height)))
-                    (exwm--window-inside-absolute-pixel-edges
-                     (get-buffer-window buffer t))))
-            (exwm--log "Reply with ConfigureNotify (edges): %s" edges)
-            (xcb:+request exwm--connection
-                (make-instance 'xcb:SendEvent
-                               :propagate 0 :destination window
-                               :event-mask xcb:EventMask:StructureNotify
-                               :event (xcb:marshal
-                                       (make-instance
-                                        'xcb:ConfigureNotify
-                                        :event window :window window
-                                        :above-sibling xcb:Window:None
-                                        :x (elt edges 0) :y (elt edges 1)
-                                        :width (- (elt edges 2) (elt edges 0))
-                                        :height (- (elt edges 3) (elt edges 1))
-                                        :border-width 0 :override-redirect 0)
-                                       exwm--connection))))
-        (if buffer
-            (with-current-buffer buffer
-              (setq edges
-                    (exwm--window-inside-pixel-edges
-                     (get-buffer-window buffer t))
-                    width-delta (- width (- (elt edges 2)
-                                            (elt edges 0)))
-                    height-delta (- height (- (elt edges 3)
-                                              (elt edges 1))))
-              (exwm--log "ConfigureWindow (resize floating X window)")
-              (exwm--set-geometry (frame-parameter exwm--floating-frame
-                                                   'exwm-outer-id)
-                                  nil
-                                  nil
-                                  (unless (= 0 (logand value-mask
-                                                       xcb:ConfigWindow:Width))
-                                    (+ (frame-outer-width exwm--floating-frame)
-                                       width-delta))
-                                  (unless (= 0 (logand value-mask
-                                                       xcb:ConfigWindow:Height))
-                                    (+ (frame-outer-height exwm--floating-frame)
-                                       height-delta))))
-          (exwm--log "ConfigureWindow (preserve geometry)")
-          ;; Configure the unmanaged window.
-          ;; But Emacs frames should be excluded.  Generally we don't
-          ;; receive ConfigureRequest events from Emacs frames since we
-          ;; have set OverrideRedirect on them, but this is not true for
-          ;; Lucid build (as of 25.1).
-          (unless (memq window exwm-manage--frame-outer-id-list)
-            (xcb:+request exwm--connection
-                (make-instance 'xcb:ConfigureWindow
-                               :window window
-                               :value-mask value-mask
-                               :x x :y y :width width :height height
-                               :border-width border-width
-                               :sibling sibling
-                               :stack-mode stack-mode)))))))
+               window value-mask width height x y
+               border-width sibling stack-mode)
+    (if-let* ((buffer (exwm--id->buffer window)))
+        (with-current-buffer buffer
+          (if (exwm-layout--fullscreen-p)
+              ;; Fit fullscreen windows to the workspace.
+              (with-slots (x y width height)
+                  (exwm-workspace--get-geometry exwm--frame)
+                (exwm-manage--send-ConfigureNotify
+                 window x y width height))
+            (let* ((edges (exwm--window-inside-absolute-pixel-edges
+                           (get-buffer-window buffer t)))
+                   (window-x (elt edges 0))
+                   (window-y (elt edges 1))
+                   (window-width (- (elt edges 2) window-x))
+                   (window-height (- (elt edges 3) window-y)))
+              (if (not exwm--floating-frame)
+                  ;; If the window isn't floating, fit it to its Emacs window.
+                  (exwm-manage--send-ConfigureNotify
+                   window window-x window-y
+                   window-width window-height)
+                ;; Finally, resize the floating window.
+                (exwm--log "ConfigureWindow (resize floating X window)")
+                (let* ((frame-id (frame-parameter exwm--floating-frame
+                                                  'exwm-outer-id))
+                       (frame-edges (frame-edges exwm--floating-frame
+                                                 'outer-edges))
+                       (frame-width (- (elt frame-edges 2)
+                                       (elt frame-edges 0)))
+                       (frame-height (- (elt frame-edges 3)
+                                        (elt frame-edges 1))))
+                  (exwm--set-geometry
+                   frame-id
+                   nil nil
+                   (unless (= 0 (logand value-mask xcb:ConfigWindow:Width))
+                     (+ frame-width (- width window-width)))
+                   (unless (= 0 (logand value-mask xcb:ConfigWindow:Height))
+                     (+ frame-height (- height window-height)))))))))
+      (exwm--log "ConfigureWindow (preserve geometry)")
+      ;; Configure the unmanaged window.
+      ;; But Emacs frames should be excluded.  Generally we don't
+      ;; receive ConfigureRequest events from Emacs frames since we
+      ;; have set OverrideRedirect on them, but this is not true for
+      ;; Lucid build (as of 25.1).
+      (unless (memq window exwm-manage--frame-outer-id-list)
+        (xcb:+request exwm--connection
+            (make-instance 'xcb:ConfigureWindow
+                           :window window
+                           :value-mask value-mask
+                           :x x :y y :width width :height height
+                           :border-width border-width
+                           :sibling sibling
+                           :stack-mode stack-mode)))))
   (xcb:flush exwm--connection))
 
 (defun exwm-manage--on-MapRequest (data _synthetic)
