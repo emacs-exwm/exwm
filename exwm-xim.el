@@ -305,7 +305,7 @@ The actual XIM request is in client message data or a property."
   (let ((opcode (elt data 0))
         ;; Let-bind `xim:lsb' to make pack/unpack functions work correctly.
         (xim:lsb (elt (plist-get exwm-xim--server-client-plist server-xwin) 2))
-        req replies)
+        replies)
     (cond ((= opcode xim:opcode:error)
            (exwm--log "ERROR: %s" data))
           ((= opcode xim:opcode:connect)
@@ -314,15 +314,16 @@ The actual XIM request is in client message data or a property."
            ;; Store byte-order.
            (setf (elt (plist-get exwm-xim--server-client-plist server-xwin) 2)
                  xim:lsb)
-           (setq req (xcb:unmarshal-new 'xim:connect data))
-           (if (and (= (slot-value req 'major-version) 1)
-                    (= (slot-value req 'minor-version) 0)
-                    ;; Do not support authentication.
-                    (= (slot-value req 'number) 0))
-               ;; Accept the connection.
-               (push (make-instance 'xim:connect-reply) replies)
-             ;; Deny it.
-             (push exwm-xim--default-error replies)))
+           (with-slots (major-version minor-version number)
+               (xcb:unmarshal-new 'xim:connect data)
+             (if (and (= major-version 1)
+                      (= minor-version 0)
+                      ;; Do not support authentication.
+                      (= number 0))
+                 ;; Accept the connection.
+                 (push (make-instance 'xim:connect-reply) replies)
+               ;; Deny it.
+               (push exwm-xim--default-error replies))))
           ((memq opcode (list xim:opcode:auth-required
                               xim:opcode:auth-reply
                               xim:opcode:auth-next
@@ -367,55 +368,56 @@ The actual XIM request is in client message data or a property."
                                  xcb:EventMask:NoEvent))))
           ((= opcode xim:opcode:close)
            (exwm--log "CLOSE")
-           (setq req (xcb:unmarshal-new 'xim:close data))
-           (push (make-instance 'xim:close-reply
-                                :im-id (slot-value req 'im-id))
-                 replies))
+           (with-slots (im-id) (xcb:unmarshal-new 'xim:close data)
+             (push (make-instance 'xim:close-reply :im-id im-id)
+                   replies)))
           ((= opcode xim:opcode:trigger-notify)
            (exwm--log "TRIGGER-NOTIFY")
            ;; Only static event flow modal is supported.
            (push exwm-xim--default-error replies))
           ((= opcode xim:opcode:encoding-negotiation)
            (exwm--log "ENCODING-NEGOTIATION")
-           (setq req (xcb:unmarshal-new 'xim:encoding-negotiation data))
-           (let ((index (cl-position "COMPOUND_TEXT"
-                                     (mapcar (lambda (i) (slot-value i 'name))
-                                             (slot-value req 'names))
-                                     :test #'equal)))
-             (unless index
-               ;; Fallback to portable character encoding (a subset of ASCII).
-               (setq index -1))
-             (push (make-instance 'xim:encoding-negotiation-reply
-                                  :im-id (slot-value req 'im-id)
-                                  :category
-                                  xim:encoding-negotiation-reply-category:name
-                                  :index index)
-                   replies)))
+           (with-slots (names im-id)
+               (xcb:unmarshal-new 'xim:encoding-negotiation data)
+             (let ((index (cl-position "COMPOUND_TEXT"
+                                       (mapcar (lambda (i) (slot-value i 'name))
+                                               names)
+                                       :test #'equal)))
+               (unless index
+                 ;; Fallback to portable character encoding (a subset of ASCII).
+                 (setq index -1))
+               (push (make-instance 'xim:encoding-negotiation-reply
+                                    :im-id im-id
+                                    :category
+                                    xim:encoding-negotiation-reply-category:name
+                                    :index index)
+                     replies))))
           ((= opcode xim:opcode:query-extension)
            (exwm--log "QUERY-EXTENSION")
-           (setq req (xcb:unmarshal-new 'xim:query-extension data))
-           (push (make-instance 'xim:query-extension-reply
-                                :im-id (slot-value req 'im-id)
-                                ;; No extension support.
-                                :length 0
-                                :extensions nil)
-                 replies))
+           (with-slots (im-id)
+               (xcb:unmarshal-new 'xim:query-extension data)
+             (push (make-instance 'xim:query-extension-reply
+                                  :im-id im-id
+                                  ;; No extension support.
+                                  :length 0
+                                  :extensions nil)
+                   replies)))
           ((= opcode xim:opcode:set-im-values)
            (exwm--log "SET-IM-VALUES")
            ;; There's only one possible input method attribute.
-           (setq req (xcb:unmarshal-new 'xim:set-im-values data))
-           (push (make-instance 'xim:set-im-values-reply
-                                :im-id (slot-value req 'im-id))
-                 replies))
+           (with-slots (im-id)
+               (xcb:unmarshal-new 'xim:set-im-values data)
+             (push (make-instance 'xim:set-im-values-reply
+                                  :im-id im-id)
+                   replies)))
           ((= opcode xim:opcode:get-im-values)
            (exwm--log "GET-IM-VALUES")
-           (let (im-attributes-id)
-             (setq req (xcb:unmarshal-new 'xim:get-im-values data))
-             (setq im-attributes-id (slot-value req 'im-attributes-id))
+           (with-slots (im-attributes-id im-id)
+               (xcb:unmarshal-new 'xim:get-im-values data)
              (if (cl-notevery (lambda (i) (= i 0)) im-attributes-id)
                  ;; Only support one IM attributes.
                  (push (make-instance 'xim:error
-                                      :im-id (slot-value req 'im-id)
+                                      :im-id im-id
                                       :ic-id 0
                                       :flag xim:error-flag:invalid-ic-id
                                       :error-code xim:error-code:bad-something
@@ -425,45 +427,49 @@ The actual XIM request is in client message data or a property."
                        replies)
                (push
                 (make-instance 'xim:get-im-values-reply
-                               :im-id (slot-value req 'im-id)
+                               :im-id im-id
                                :length nil
                                :im-attributes exwm-xim--default-attributes)
                 replies))))
           ((= opcode xim:opcode:create-ic)
            (exwm--log "CREATE-IC")
-           (setq req (xcb:unmarshal-new 'xim:create-ic data))
-           ;; Note: The ic-attributes slot is ignored.
-           (setq exwm-xim--ic-id (if (< exwm-xim--ic-id #xffff)
-                                     (1+ exwm-xim--ic-id)
-                                   1))
-           (push (make-instance 'xim:create-ic-reply
-                                :im-id (slot-value req 'im-id)
-                                :ic-id exwm-xim--ic-id)
-                 replies))
+           (with-slots (im-id)
+               (xcb:unmarshal-new 'xim:create-ic data)
+             ;; Note: The ic-attributes slot is ignored.
+             (setq exwm-xim--ic-id (if (< exwm-xim--ic-id #xffff)
+                                       (1+ exwm-xim--ic-id)
+                                     1))
+             (push (make-instance 'xim:create-ic-reply
+                                  :im-id im-id
+                                  :ic-id exwm-xim--ic-id)
+                   replies)))
           ((= opcode xim:opcode:destroy-ic)
            (exwm--log "DESTROY-IC")
-           (setq req (xcb:unmarshal-new 'xim:destroy-ic data))
-           (push (make-instance 'xim:destroy-ic-reply
-                                :im-id (slot-value req 'im-id)
-                                :ic-id (slot-value req 'ic-id))
-                 replies))
+           (with-slots (im-id ic-id)
+               (xcb:unmarshal-new 'xim:destroy-ic data)
+             (push (make-instance 'xim:destroy-ic-reply
+                                  :im-id im-id
+                                  :ic-id ic-id)
+                   replies)))
           ((= opcode xim:opcode:set-ic-values)
            (exwm--log "SET-IC-VALUES")
-           (setq req (xcb:unmarshal-new 'xim:set-ic-values data))
-           ;; We don't distinguish between input contexts.
-           (push (make-instance 'xim:set-ic-values-reply
-                                :im-id (slot-value req 'im-id)
-                                :ic-id (slot-value req 'ic-id))
-                 replies))
+           (with-slots (im-id ic-id)
+               (xcb:unmarshal-new 'xim:set-ic-values data)
+             ;; We don't distinguish between input contexts.
+             (push (make-instance 'xim:set-ic-values-reply
+                                  :im-id im-id
+                                  :ic-id ic-id)
+                   replies)))
           ((= opcode xim:opcode:get-ic-values)
            (exwm--log "GET-IC-VALUES")
-           (setq req (xcb:unmarshal-new 'xim:get-ic-values data))
-           (push (make-instance 'xim:get-ic-values-reply
-                                :im-id (slot-value req 'im-id)
-                                :ic-id (slot-value req 'ic-id)
-                                :length nil
-                                :ic-attributes exwm-xim--default-attributes)
-                 replies))
+           (with-slots (im-id ic-id)
+               (xcb:unmarshal-new 'xim:get-ic-values data)
+             (push (make-instance 'xim:get-ic-values-reply
+                                  :im-id im-id
+                                  :ic-id ic-id
+                                  :length nil
+                                  :ic-attributes exwm-xim--default-attributes)
+                   replies)))
           ((= opcode xim:opcode:set-ic-focus)
            (exwm--log "SET-IC-FOCUS")
            ;; All input contexts are the same.
@@ -474,28 +480,30 @@ The actual XIM request is in client message data or a property."
            )
           ((= opcode xim:opcode:forward-event)
            (exwm--log "FORWARD-EVENT")
-           (setq req (xcb:unmarshal-new 'xim:forward-event data))
-           (exwm-xim--handle-forward-event-request req xim:lsb conn
-                                                   client-xwin))
+           (exwm-xim--handle-forward-event-request
+            (xcb:unmarshal-new 'xim:forward-event data)
+            xim:lsb conn client-xwin))
           ((= opcode xim:opcode:sync)
            (exwm--log "SYNC")
-           (setq req (xcb:unmarshal-new 'xim:sync data))
-           (push (make-instance 'xim:sync-reply
-                                :im-id (slot-value req 'im-id)
-                                :ic-id (slot-value req 'ic-id))
-                 replies))
+           (with-slots (im-id ic-id)
+               (xcb:unmarshal-new 'xim:sync data)
+             (push (make-instance 'xim:sync-reply
+                                  :im-id im-id
+                                  :ic-id ic-id)
+                   replies)))
           ((= opcode xim:opcode:sync-reply)
            (exwm--log "SYNC-REPLY"))
           ((= opcode xim:opcode:reset-ic)
            (exwm--log "RESET-IC")
            ;; No context-specific data saved.
-           (setq req (xcb:unmarshal-new 'xim:reset-ic data))
-           (push (make-instance 'xim:reset-ic-reply
-                                :im-id (slot-value req 'im-id)
-                                :ic-id (slot-value req 'ic-id)
-                                :length 0
-                                :string "")
-                 replies))
+           (with-slots (im-id ic-id)
+               (xcb:unmarshal-new 'xim:reset-ic data)
+             (push (make-instance 'xim:reset-ic-reply
+                                  :im-id im-id
+                                  :ic-id ic-id
+                                  :length 0
+                                  :string "")
+                   replies)))
           ((memq opcode (list xim:opcode:str-conversion-reply
                               xim:opcode:preedit-start-reply
                               xim:opcode:preedit-caret-reply))
