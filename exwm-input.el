@@ -239,29 +239,30 @@ ARGS are additional arguments to CALLBACK."
 
 (defun exwm-input--on-EnterNotify (data _synthetic)
   "Handle EnterNotify events with DATA."
-  (let ((evt (xcb:unmarshal-new 'xcb:EnterNotify data))
-        buffer window frame frame-xid edges fake-evt)
-    (with-slots (time root event root-x root-y event-x event-y state) evt
-      (setq buffer (exwm--id->buffer event)
-            window (get-buffer-window buffer t))
+  (with-slots (time root event root-x root-y event-x event-y state)
+      (xcb:unmarshal-new 'xcb:EnterNotify data)
+    (when-let* ((_(not (equal exwm-input--last-enter-notify-position
+                              (vector root-x root-y))))
+                (buffer (exwm--id->buffer event))
+                (window (get-buffer-window buffer t))
+                (_(not (eq window (selected-window))))
+                (frame (window-frame window))
+                (frame-xid (frame-parameter frame 'exwm-id)))
       (exwm--log "buffer=%s; window=%s" buffer window)
-      (when (and buffer window (not (eq window (selected-window)))
-                 (not (equal exwm-input--last-enter-notify-position
-                             (vector root-x root-y))))
-        (setq frame (window-frame window)
-              frame-xid (frame-parameter frame 'exwm-id))
-        (unless (eq frame exwm-workspace--current)
-          (if (exwm-workspace--workspace-p frame)
-              ;; The X window is on another workspace.
-              (exwm-workspace-switch frame)
-            (with-current-buffer buffer
-              (when (and (derived-mode-p 'exwm-mode)
-                         (not (eq exwm--frame exwm-workspace--current)))
-                ;; The floating X window is on another workspace.
-                (exwm-workspace-switch exwm--frame)))))
-        ;; Send a fake MotionNotify event to Emacs.
-        (setq edges (exwm--window-inside-pixel-edges window)
-              fake-evt (make-instance 'xcb:MotionNotify
+      (unless (eq frame exwm-workspace--current)
+        (if (exwm-workspace--workspace-p frame)
+            ;; The X window is on another workspace.
+            (exwm-workspace-switch frame)
+          (with-current-buffer buffer
+            (when (and (derived-mode-p 'exwm-mode)
+                       (not (eq exwm--frame exwm-workspace--current)))
+              ;; The floating X window is on another workspace.
+              (exwm-workspace-switch exwm--frame)))))
+      ;; Send a fake MotionNotify event to Emacs.
+      (let* ((edges (exwm--window-inside-pixel-edges window))
+             (x (+ event-x (elt edges 0)))
+             (y (+ event-y (elt edges 1)))
+             (fake-evt (make-instance 'xcb:MotionNotify
                                       :detail 0
                                       :time time
                                       :root root
@@ -269,18 +270,18 @@ ARGS are additional arguments to CALLBACK."
                                       :child xcb:Window:None
                                       :root-x root-x
                                       :root-y root-y
-                                      :event-x (+ event-x (elt edges 0))
-                                      :event-y (+ event-y (elt edges 1))
+                                      :event-x x
+                                      :event-y y
                                       :state state
-                                      :same-screen 1))
+                                      :same-screen 1)))
         (xcb:+request exwm--connection
             (make-instance 'xcb:SendEvent
                            :propagate 0
                            :destination frame-xid
                            :event-mask xcb:EventMask:NoEvent
-                           :event (xcb:marshal fake-evt exwm--connection)))
-        (xcb:flush exwm--connection))
-      (setq exwm-input--last-enter-notify-position (vector root-x root-y)))))
+                           :event (xcb:marshal fake-evt exwm--connection))))
+      (xcb:flush exwm--connection))
+    (setq exwm-input--last-enter-notify-position (vector root-x root-y))))
 
 (defun exwm-input--on-keysyms-update ()
   "Update global prefix keys."
@@ -390,16 +391,15 @@ attempt later."
 
 (defun exwm-input--on-ButtonPress (data _synthetic)
   "Handle ButtonPress event with DATA."
-  (let ((obj (xcb:unmarshal-new 'xcb:ButtonPress data))
-        (mode xcb:Allow:SyncPointer)
-        button-event window buffer frame fake-last-command)
-    (exwm--log "major-mode=%s buffer=%s"
-               major-mode (buffer-name (current-buffer)))
-    (with-slots (detail event state) obj
-      (setq button-event (xcb:keysyms:keysym->event exwm--connection
-                                                    detail state)
-            buffer (exwm--id->buffer event)
-            window (get-buffer-window buffer t))
+  (exwm--log "major-mode=%s buffer=%s"
+             major-mode (buffer-name (current-buffer)))
+  (with-slots (detail event state)
+      (xcb:unmarshal-new 'xcb:ButtonPress data)
+    (let* ((mode xcb:Allow:SyncPointer)
+           (button-event (xcb:keysyms:keysym->event exwm--connection
+                                                    detail state))
+           (buffer (exwm--id->buffer event))
+           fake-last-command)
       (cond ((and (eq button-event exwm-input-move-event)
                   buffer
                   ;; Either an undecorated or a floating X window.
@@ -419,23 +419,23 @@ attempt later."
             (buffer
              ;; Click to focus
              (setq fake-last-command t)
-             (unless (eq window (selected-window))
-               (setq frame (window-frame window))
-               (unless (eq frame exwm-workspace--current)
-                 (if (exwm-workspace--workspace-p frame)
-                     ;; The X window is on another workspace
-                     (exwm-workspace-switch frame)
-                   (with-current-buffer buffer
-                     (when (and (derived-mode-p 'exwm-mode)
-                                (not (eq exwm--frame
-                                         exwm-workspace--current)))
-                       ;; The floating X window is on another workspace
-                       (exwm-workspace-switch exwm--frame)))))
+             (when-let* ((window (get-buffer-window buffer t))
+                         (_(not (eq window (selected-window))))
+                         (frame (window-frame window))
+                         (_(not (eq frame exwm-workspace--current))))
+               (if (exwm-workspace--workspace-p frame)
+                   ;; The X window is on another workspace
+                   (exwm-workspace-switch frame)
+                 (with-current-buffer buffer
+                   (when (and (derived-mode-p 'exwm-mode)
+                              (not (eq exwm--frame
+                                       exwm-workspace--current)))
+                     ;; The floating X window is on another workspace
+                     (exwm-workspace-switch exwm--frame))))
                ;; It has been reported that the `window' may have be deleted
-               (if (window-live-p window)
-                   (select-window window)
-                 (setq window (get-buffer-window buffer t))
-                 (when window (select-window window))))
+               (unless (window-live-p window)
+                 (setq window (get-buffer-window buffer t)))
+               (when window (select-window window)))
              ;; Also process keybindings.
              (with-current-buffer buffer
                (when (derived-mode-p 'exwm-mode)
@@ -453,10 +453,10 @@ attempt later."
         (if buffer
             (with-current-buffer buffer
               (exwm-input--fake-last-command))
-          (exwm-input--fake-last-command))))
-    (xcb:+request exwm--connection
-        (make-instance 'xcb:AllowEvents :mode mode :time xcb:Time:CurrentTime))
-    (xcb:flush exwm--connection))
+          (exwm-input--fake-last-command)))
+      (xcb:+request exwm--connection
+          (make-instance 'xcb:AllowEvents :mode mode :time xcb:Time:CurrentTime))
+      (xcb:flush exwm--connection)))
   (run-hooks 'exwm-input--event-hook))
 
 (defun exwm-input--on-KeyPress (data _synthetic)
