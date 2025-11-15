@@ -558,12 +558,11 @@ Descriptors' for the list of supported properties."
 (defun exwm--on-PropertyNotify (data _synthetic)
   "Handle PropertyNotify event.
 DATA contains unmarshalled PropertyNotify event data."
-  (let ((obj (xcb:unmarshal-new 'xcb:PropertyNotify data))
-        atom id buffer)
-    (setq id (slot-value obj 'window)
-          atom (slot-value obj 'atom))
+  (let* ((obj (xcb:unmarshal-new 'xcb:PropertyNotify data))
+         (atom (slot-value obj 'atom))
+         (id (slot-value obj 'window))
+         (buffer (exwm--id->buffer id)))
     (exwm--log "atom=%s(%s)" (x-get-atom-name atom exwm-workspace--current) atom)
-    (setq buffer (exwm--id->buffer id))
     (if (not (buffer-live-p buffer))
         ;; Properties of unmanaged X windows.
         (cond ((= atom xcb:Atom:_NET_WM_STRUT)
