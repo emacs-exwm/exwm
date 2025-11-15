@@ -554,9 +554,8 @@ Descriptors' for the list of supported properties."
 (defun exwm--on-PropertyNotify (data _synthetic)
   "Handle PropertyNotify event.
 DATA contains unmarshalled PropertyNotify event data."
-  (let ((obj (make-instance 'xcb:PropertyNotify))
+  (let ((obj (xcb:unmarshal-new 'xcb:PropertyNotify data))
         atom id buffer)
-    (xcb:unmarshal obj data)
     (setq id (slot-value obj 'window)
           atom (slot-value obj 'atom))
     (exwm--log "atom=%s(%s)" (x-get-atom-name atom exwm-workspace--current) atom)
@@ -784,9 +783,7 @@ DATA contains unmarshalled PropertyNotify event data."
 (defun exwm--on-ClientMessage (raw-data _synthetic)
   "Handle ClientMessage event.
 RAW-DATA contains unmarshalled ClientMessage event data."
-  (let* ((obj (let ((m (make-instance 'xcb:ClientMessage)))
-                (xcb:unmarshal m raw-data)
-                m))
+  (let* ((obj (xcb:unmarshal-new 'xcb:ClientMessage raw-data))
          (type (slot-value obj 'type))
          (id (slot-value obj 'window))
          (data (slot-value (slot-value obj 'data) 'data32))
@@ -803,9 +800,8 @@ RAW-DATA contains unmarshalled ClientMessage event data."
   "Handle SelectionClear events.
 DATA contains unmarshalled SelectionClear event data."
   (exwm--log)
-  (let ((obj (make-instance 'xcb:SelectionClear))
+  (let ((obj (xcb:unmarshal-new 'xcb:SelectionClear data))
         owner selection)
-    (xcb:unmarshal obj data)
     (setq owner (slot-value obj 'owner)
           selection (slot-value obj 'selection))
     (when (and (eq owner exwm--wmsn-window)

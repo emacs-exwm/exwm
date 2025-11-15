@@ -227,8 +227,7 @@ ARGS are additional arguments to CALLBACK."
   "Handle PropertyNotify events with DATA."
   (exwm--log)
   (when exwm-input--timestamp-callback
-    (let ((obj (make-instance 'xcb:PropertyNotify)))
-      (xcb:unmarshal obj data)
+    (let ((obj (xcb:unmarshal-new 'xcb:PropertyNotify data)))
       (when (= exwm-input--timestamp-window
                (slot-value obj 'window))
         (apply (car exwm-input--timestamp-callback)
@@ -240,9 +239,8 @@ ARGS are additional arguments to CALLBACK."
 
 (defun exwm-input--on-EnterNotify (data _synthetic)
   "Handle EnterNotify events with DATA."
-  (let ((evt (make-instance 'xcb:EnterNotify))
+  (let ((evt (xcb:unmarshal-new 'xcb:EnterNotify data))
         buffer window frame frame-xid edges fake-evt)
-    (xcb:unmarshal evt data)
     (with-slots (time root event root-x root-y event-x event-y state) evt
       (setq buffer (exwm--id->buffer event)
             window (get-buffer-window buffer t))
@@ -392,10 +390,9 @@ attempt later."
 
 (defun exwm-input--on-ButtonPress (data _synthetic)
   "Handle ButtonPress event with DATA."
-  (let ((obj (make-instance 'xcb:ButtonPress))
+  (let ((obj (xcb:unmarshal-new 'xcb:ButtonPress data))
         (mode xcb:Allow:SyncPointer)
         button-event window buffer frame fake-last-command)
-    (xcb:unmarshal obj data)
     (exwm--log "major-mode=%s buffer=%s"
                major-mode (buffer-name (current-buffer)))
     (with-slots (detail event state) obj
@@ -465,8 +462,7 @@ attempt later."
 (defun exwm-input--on-KeyPress (data _synthetic)
   "Handle KeyPress event with DATA."
   (with-current-buffer (window-buffer (selected-window))
-    (let ((obj (make-instance 'xcb:KeyPress)))
-      (xcb:unmarshal obj data)
+    (let ((obj (xcb:unmarshal-new 'xcb:KeyPress data)))
       (exwm--log "major-mode=%s buffer=%s"
                  major-mode (buffer-name (current-buffer)))
       (if (derived-mode-p 'exwm-mode)
@@ -481,8 +477,7 @@ attempt later."
 (defun exwm-input--on-CreateNotify (data _synthetic)
   "Handle CreateNotify events with DATA."
   (exwm--log)
-  (let ((evt (make-instance 'xcb:CreateNotify)))
-    (xcb:unmarshal evt data)
+  (let ((evt (xcb:unmarshal-new 'xcb:CreateNotify data)))
     (with-slots (window) evt
       (exwm-input--grab-global-prefix-keys window))))
 

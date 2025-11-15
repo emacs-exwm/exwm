@@ -1133,8 +1133,7 @@ account when calculating the height."
 (defun exwm-workspace--on-ConfigureNotify (data _synthetic)
   "Adjust the container to fit the minibuffer frame.
 DATA contains unmarshalled ConfigureNotify event data."
-  (let ((obj (make-instance 'xcb:ConfigureNotify)) y)
-    (xcb:unmarshal obj data)
+  (let ((obj (xcb:unmarshal-new 'xcb:ConfigureNotify data)) y)
     (with-slots (window height) obj
       (when (eq (frame-parameter exwm-workspace--minibuffer 'exwm-outer-id)
                 window)

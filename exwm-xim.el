@@ -170,9 +170,8 @@ DATA contains unmarshalled SelectionRequest event data.
 
 Such events would be received when clients query for LOCALES or TRANSPORT."
   (exwm--log)
-  (let ((evt (make-instance 'xcb:SelectionRequest))
+  (let ((evt (xcb:unmarshal-new 'xcb:SelectionRequest data))
         value fake-event)
-    (xcb:unmarshal evt data)
     (with-slots (time requestor selection target property) evt
       (setq value (cond ((= target exwm-xim--LOCALES)
                          ;; Return supported locales.
@@ -213,9 +212,8 @@ Such events would be received when clients request for _XIM_XCONNECT.
 A new X connection and server window would be created to communicate with
 this client."
   (exwm--log)
-  (let ((evt (make-instance 'xcb:ClientMessage))
+  (let ((evt (xcb:unmarshal-new 'xcb:ClientMessage data))
         conn client-xwin server-xwin)
-    (xcb:unmarshal evt data)
     (with-slots (window type data) evt
       (unless (= type exwm-xim--_XIM_XCONNECT)
         ;; Only handle _XIM_XCONNECT.
@@ -274,9 +272,8 @@ this client."
 Such events would be received when clients request for _XIM_PROTOCOL.
 The actual XIM request is in client message data or a property."
   (exwm--log)
-  (let ((evt (make-instance 'xcb:ClientMessage))
+  (let ((evt (xcb:unmarshal-new 'xcb:ClientMessage data))
         conn client-xwin server-xwin)
-    (xcb:unmarshal evt data)
     (with-slots (format window type data) evt
       (unless (= type exwm-xim--_XIM_PROTOCOL)
         (exwm--log "Ignore ClientMessage %s" type)
@@ -320,8 +317,7 @@ The actual XIM request is in client message data or a property."
            ;; Store byte-order.
            (setf (elt (plist-get exwm-xim--server-client-plist server-xwin) 2)
                  xim:lsb)
-           (setq req (make-instance 'xim:connect))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:connect data))
            (if (and (= (slot-value req 'major-version) 1)
                     (= (slot-value req 'minor-version) 0)
                     ;; Do not support authentication.
@@ -374,8 +370,7 @@ The actual XIM request is in client message data or a property."
                                  xcb:EventMask:NoEvent))))
           ((= opcode xim:opcode:close)
            (exwm--log "CLOSE")
-           (setq req (make-instance 'xim:close))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:close data))
            (push (make-instance 'xim:close-reply
                                 :im-id (slot-value req 'im-id))
                  replies))
@@ -385,8 +380,7 @@ The actual XIM request is in client message data or a property."
            (push exwm-xim--default-error replies))
           ((= opcode xim:opcode:encoding-negotiation)
            (exwm--log "ENCODING-NEGOTIATION")
-           (setq req (make-instance 'xim:encoding-negotiation))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:encoding-negotiation data))
            (let ((index (cl-position "COMPOUND_TEXT"
                                      (mapcar (lambda (i) (slot-value i 'name))
                                              (slot-value req 'names))
@@ -402,8 +396,7 @@ The actual XIM request is in client message data or a property."
                    replies)))
           ((= opcode xim:opcode:query-extension)
            (exwm--log "QUERY-EXTENSION")
-           (setq req (make-instance 'xim:query-extension))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:query-extension data))
            (push (make-instance 'xim:query-extension-reply
                                 :im-id (slot-value req 'im-id)
                                 ;; No extension support.
@@ -413,16 +406,14 @@ The actual XIM request is in client message data or a property."
           ((= opcode xim:opcode:set-im-values)
            (exwm--log "SET-IM-VALUES")
            ;; There's only one possible input method attribute.
-           (setq req (make-instance 'xim:set-im-values))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:set-im-values data))
            (push (make-instance 'xim:set-im-values-reply
                                 :im-id (slot-value req 'im-id))
                  replies))
           ((= opcode xim:opcode:get-im-values)
            (exwm--log "GET-IM-VALUES")
-           (setq req (make-instance 'xim:get-im-values))
            (let (im-attributes-id)
-             (xcb:unmarshal req data)
+             (setq req (xcb:unmarshal-new 'xim:get-im-values data))
              (setq im-attributes-id (slot-value req 'im-attributes-id))
              (if (cl-notevery (lambda (i) (= i 0)) im-attributes-id)
                  ;; Only support one IM attributes.
@@ -443,8 +434,7 @@ The actual XIM request is in client message data or a property."
                 replies))))
           ((= opcode xim:opcode:create-ic)
            (exwm--log "CREATE-IC")
-           (setq req (make-instance 'xim:create-ic))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:create-ic data))
            ;; Note: The ic-attributes slot is ignored.
            (setq exwm-xim--ic-id (if (< exwm-xim--ic-id #xffff)
                                      (1+ exwm-xim--ic-id)
@@ -455,16 +445,14 @@ The actual XIM request is in client message data or a property."
                  replies))
           ((= opcode xim:opcode:destroy-ic)
            (exwm--log "DESTROY-IC")
-           (setq req (make-instance 'xim:destroy-ic))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:destroy-ic data))
            (push (make-instance 'xim:destroy-ic-reply
                                 :im-id (slot-value req 'im-id)
                                 :ic-id (slot-value req 'ic-id))
                  replies))
           ((= opcode xim:opcode:set-ic-values)
            (exwm--log "SET-IC-VALUES")
-           (setq req (make-instance 'xim:set-ic-values))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:set-ic-values data))
            ;; We don't distinguish between input contexts.
            (push (make-instance 'xim:set-ic-values-reply
                                 :im-id (slot-value req 'im-id)
@@ -472,8 +460,7 @@ The actual XIM request is in client message data or a property."
                  replies))
           ((= opcode xim:opcode:get-ic-values)
            (exwm--log "GET-IC-VALUES")
-           (setq req (make-instance 'xim:get-ic-values))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:get-ic-values data))
            (push (make-instance 'xim:get-ic-values-reply
                                 :im-id (slot-value req 'im-id)
                                 :ic-id (slot-value req 'ic-id)
@@ -490,14 +477,12 @@ The actual XIM request is in client message data or a property."
            )
           ((= opcode xim:opcode:forward-event)
            (exwm--log "FORWARD-EVENT")
-           (setq req (make-instance 'xim:forward-event))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:forward-event data))
            (exwm-xim--handle-forward-event-request req xim:lsb conn
                                                    client-xwin))
           ((= opcode xim:opcode:sync)
            (exwm--log "SYNC")
-           (setq req (make-instance 'xim:sync))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:sync data))
            (push (make-instance 'xim:sync-reply
                                 :im-id (slot-value req 'im-id)
                                 :ic-id (slot-value req 'ic-id))
@@ -507,8 +492,7 @@ The actual XIM request is in client message data or a property."
           ((= opcode xim:opcode:reset-ic)
            (exwm--log "RESET-IC")
            ;; No context-specific data saved.
-           (setq req (make-instance 'xim:reset-ic))
-           (xcb:unmarshal req data)
+           (setq req (xcb:unmarshal-new 'xim:reset-ic data))
            (push (make-instance 'xim:reset-ic-reply
                                 :im-id (slot-value req 'im-id)
                                 :ic-id (slot-value req 'ic-id)
@@ -538,8 +522,7 @@ The actual XIM request is in client message data or a property."
     ;; Note: The flag slot is ignored.
     ;; Do conversion in client's byte-order.
     (let ((xcb:lsb lsb))
-      (setq key-event (make-instance 'xcb:KeyPress))
-      (xcb:unmarshal key-event (slot-value req 'event)))
+      (setq key-event (xcb:unmarshal-new 'xcb:KeyPress (slot-value req 'event))))
     (with-slots (detail state) key-event
       (setq keysym (xcb:keysyms:keycode->keysym exwm-xim--conn detail
                                                 state))
@@ -671,9 +654,8 @@ the request data or where to fetch the data."
 Such event would be received when the client window is destroyed."
   (exwm--log)
   (unless synthetic
-    (let ((evt (make-instance 'xcb:DestroyNotify))
+    (let ((evt (xcb:unmarshal-new 'xcb:DestroyNotify data))
           conn client-xwin server-xwin)
-      (xcb:unmarshal evt data)
       (setq client-xwin (slot-value evt 'window)
             server-xwin (plist-get exwm-xim--client-server-plist client-xwin))
       (when server-xwin

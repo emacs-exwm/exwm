@@ -664,9 +664,8 @@ FRAME is the frame to be deleted."
   "Handle ConfigureRequest event.
 DATA contains unmarshalled ConfigureRequest event data."
   (exwm--log)
-  (let ((obj (make-instance 'xcb:ConfigureRequest))
+  (let ((obj (xcb:unmarshal-new 'xcb:ConfigureRequest data))
         buffer edges width-delta height-delta)
-    (xcb:unmarshal obj data)
     (with-slots (window x y width height
                         border-width sibling stack-mode value-mask)
         obj
@@ -754,8 +753,7 @@ border-width: %d; sibling: #x%x; stack-mode: %d"
 (defun exwm-manage--on-MapRequest (data _synthetic)
   "Handle MapRequest event.
 DATA contains unmarshalled MapRequest event data."
-  (let ((obj (make-instance 'xcb:MapRequest)))
-    (xcb:unmarshal obj data)
+  (let ((obj (xcb:unmarshal-new 'xcb:MapRequest data)))
     (with-slots (parent window) obj
       (exwm--log "id=#x%x parent=#x%x" window parent)
       (if (assoc window exwm--id-buffer-alist)
@@ -775,8 +773,7 @@ DATA contains unmarshalled MapRequest event data."
 (defun exwm-manage--on-UnmapNotify (data _synthetic)
   "Handle UnmapNotify event.
 DATA contains unmarshalled UnmapNotify event data."
-  (let ((obj (make-instance 'xcb:UnmapNotify)))
-    (xcb:unmarshal obj data)
+  (let ((obj (xcb:unmarshal-new 'xcb:UnmapNotify data)))
     (with-slots (window) obj
       (exwm--log "id=#x%x" window)
       (exwm-manage--unmanage-window window t))))
@@ -784,8 +781,7 @@ DATA contains unmarshalled UnmapNotify event data."
 (defun exwm-manage--on-MapNotify (data _synthetic)
   "Handle MapNotify event.
 DATA contains unmarshalled MapNotify event data."
-  (let ((obj (make-instance 'xcb:MapNotify)))
-    (xcb:unmarshal obj data)
+  (let ((obj (xcb:unmarshal-new 'xcb:MapNotify data)))
     (with-slots (window) obj
       (when (assoc window exwm--id-buffer-alist)
         (exwm--log "id=#x%x" window)
@@ -813,8 +809,7 @@ DATA contains unmarshalled DestroyNotify event data.
 SYNTHETIC indicates whether the event is a synthetic event."
   (unless synthetic
     (exwm--log)
-    (let ((obj (make-instance 'xcb:DestroyNotify)))
-      (xcb:unmarshal obj data)
+    (let ((obj (xcb:unmarshal-new 'xcb:DestroyNotify data)))
       (exwm--log "#x%x" (slot-value obj 'window))
       (exwm-manage--unmanage-window (slot-value obj 'window)))))
 

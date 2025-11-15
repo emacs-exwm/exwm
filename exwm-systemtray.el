@@ -349,8 +349,7 @@ indicate how to support actual transparency."
   "Unembed icons on DestroyNotify.
 Argument DATA contains the raw event data."
   (exwm--log)
-  (let ((obj (make-instance 'xcb:DestroyNotify)))
-    (xcb:unmarshal obj data)
+  (let ((obj (xcb:unmarshal-new 'xcb:DestroyNotify data)))
     (with-slots (window) obj
       (when (assoc window exwm-systemtray--list)
         (exwm-systemtray--unembed window)))))
@@ -359,8 +358,7 @@ Argument DATA contains the raw event data."
   "Unembed icons on ReparentNotify.
 Argument DATA contains the raw event data."
   (exwm--log)
-  (let ((obj (make-instance 'xcb:ReparentNotify)))
-    (xcb:unmarshal obj data)
+  (let ((obj (xcb:unmarshal-new 'xcb:ReparentNotify data)))
     (with-slots (window parent) obj
       (when (and (/= parent exwm-systemtray--embedder-window)
                  (assoc window exwm-systemtray--list))
@@ -370,9 +368,8 @@ Argument DATA contains the raw event data."
   "Resize the tray icon on ResizeRequest.
 Argument DATA contains the raw event data."
   (exwm--log)
-  (let ((obj (make-instance 'xcb:ResizeRequest))
+  (let ((obj (xcb:unmarshal-new 'xcb:ResizeRequest data))
         attr)
-    (xcb:unmarshal obj data)
     (with-slots (window width height) obj
       (when (setq attr (cdr (assoc window exwm-systemtray--list)))
         (with-slots ((width* width)
@@ -399,9 +396,8 @@ Argument DATA contains the raw event data."
   "Map/Unmap the tray icon on PropertyNotify.
 Argument DATA contains the raw event data."
   (exwm--log)
-  (let ((obj (make-instance 'xcb:PropertyNotify))
+  (let ((obj (xcb:unmarshal-new 'xcb:PropertyNotify data))
         attr info visible)
-    (xcb:unmarshal obj data)
     (with-slots (window atom state) obj
       (when (and (eq state xcb:Property:NewValue)
                  (eq atom xcb:Atom:_XEMBED_INFO)
@@ -424,9 +420,8 @@ Argument DATA contains the raw event data."
 (defun exwm-systemtray--on-ClientMessage (data _synthetic)
   "Handle client messages.
 Argument DATA contains the raw event data."
-  (let ((obj (make-instance 'xcb:ClientMessage))
+  (let ((obj (xcb:unmarshal-new 'xcb:ClientMessage data))
         opcode data32)
-    (xcb:unmarshal obj data)
     (with-slots (window type data) obj
       (when (eq type xcb:Atom:_NET_SYSTEM_TRAY_OPCODE)
         (setq data32 (slot-value data 'data32)
@@ -449,8 +444,7 @@ Argument DATA contains the raw event data."
   ;; a workspace frame has the input focus and the pointer is over a
   ;; tray icon.
   (let ((dest (frame-parameter (selected-frame) 'exwm-outer-id))
-        (obj (make-instance 'xcb:KeyPress)))
-    (xcb:unmarshal obj data)
+        (obj (xcb:unmarshal-new 'xcb:KeyPress data)))
     (setf (slot-value obj 'event) dest)
     (xcb:+request exwm-systemtray--connection
         (make-instance 'xcb:SendEvent

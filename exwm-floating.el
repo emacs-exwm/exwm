@@ -643,16 +643,10 @@ Float resizing is stopped when TYPE is nil."
                              (frame-root-window exwm--floating-frame)))))
     (setq exwm-floating--moveresize-calculate nil)))
 
-(defsubst exwm-floating--unmarshal-motion-notify (data)
-  "Unmarshal DATA as a MotionNotify event."
-  (let ((obj (make-instance 'xcb:MotionNotify)))
-    (xcb:unmarshal obj data)
-    obj))
-
 (defun exwm-floating--do-moveresize (data _synthetic)
   "Perform move/resize on floating window with DATA."
   (when exwm-floating--moveresize-calculate
-    (let* ((obj (exwm-floating--unmarshal-motion-notify data))
+    (let* ((obj (xcb:unmarshal-new 'xcb:MotionNotify data))
            (result (funcall exwm-floating--moveresize-calculate
                             (slot-value obj 'root-x)
                             (slot-value obj 'root-y)))
