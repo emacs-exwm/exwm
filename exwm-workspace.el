@@ -1133,32 +1133,31 @@ account when calculating the height."
 (defun exwm-workspace--on-ConfigureNotify (data _synthetic)
   "Adjust the container to fit the minibuffer frame.
 DATA contains unmarshalled ConfigureNotify event data."
-  (let ((obj (xcb:unmarshal-new 'xcb:ConfigureNotify data)) y)
-    (with-slots (window height) obj
-      (when (eq (frame-parameter exwm-workspace--minibuffer 'exwm-outer-id)
-                window)
-        (exwm--log)
-        (when (and (floatp max-mini-window-height)
-                   (> height (* max-mini-window-height
-                                (exwm-workspace--current-height))))
-          (setq height (floor
-                        (* max-mini-window-height
-                           (exwm-workspace--current-height))))
-          (xcb:+request exwm--connection
-              (make-instance 'xcb:ConfigureWindow
-                             :window window
-                             :value-mask xcb:ConfigWindow:Height
-                             :height height)))
-        (when (/= (exwm-workspace--count) (length exwm-workspace--workareas))
-          ;; There is a chance the workareas are not updated timely.
-          (exwm-workspace--update-workareas))
-        (with-slots ((y* y) (height* height))
-            (exwm-workspace--workarea exwm-workspace-current-index)
-          (setq y (if (eq exwm-workspace-minibuffer-position 'top)
-                      (- y*
-                         exwm-workspace--attached-minibuffer-height)
-                    (+ y* height* (- height)
-                       exwm-workspace--attached-minibuffer-height))))
+  (with-slots (window height)
+      (xcb:unmarshal-new 'xcb:ConfigureNotify data)
+    (when (eq (frame-parameter exwm-workspace--minibuffer 'exwm-outer-id)
+              window)
+      (exwm--log)
+      (when (and (floatp max-mini-window-height)
+                 (> height (* max-mini-window-height
+                              (exwm-workspace--current-height))))
+        (setq height (floor
+                      (* max-mini-window-height
+                         (exwm-workspace--current-height))))
+        (xcb:+request exwm--connection
+            (make-instance 'xcb:ConfigureWindow
+                           :window window
+                           :value-mask xcb:ConfigWindow:Height
+                           :height height)))
+      (when (/= (exwm-workspace--count) (length exwm-workspace--workareas))
+        ;; There is a chance the workareas are not updated timely.
+        (exwm-workspace--update-workareas))
+      (let ((y (with-slots ((y* y) (height* height))
+                   (exwm-workspace--workarea exwm-workspace-current-index)
+                 (if (eq exwm-workspace-minibuffer-position 'top)
+                     (- y* exwm-workspace--attached-minibuffer-height)
+                   (+ y* height* (- height)
+                      exwm-workspace--attached-minibuffer-height)))))
         (xcb:+request exwm--connection
             (make-instance 'xcb:ConfigureWindow
                            :window (frame-parameter exwm-workspace--minibuffer

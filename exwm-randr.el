@@ -295,29 +295,28 @@ In a mirroring setup some monitors overlap and should be treated as one."
 
 Run `exwm-randr-screen-change-hook' (usually user scripts to configure RandR)."
   (exwm--log)
-  (let ((evt (xcb:unmarshal-new 'xcb:randr:ScreenChangeNotify data)))
-    (let ((ts (slot-value evt 'config-timestamp)))
-      (unless (equal ts exwm-randr--prev-screen-change-timestamp)
-        (setq exwm-randr--prev-screen-change-timestamp ts)
-        (run-hooks 'exwm-randr-screen-change-hook)))))
+  (let* ((evt (xcb:unmarshal-new 'xcb:randr:ScreenChangeNotify data))
+         (ts (slot-value evt 'config-timestamp)))
+    (unless (equal ts exwm-randr--prev-screen-change-timestamp)
+      (setq exwm-randr--prev-screen-change-timestamp ts)
+      (run-hooks 'exwm-randr-screen-change-hook))))
 
 (defun exwm-randr--on-Notify (data _synthetic)
   "Handle `CrtcChangeNotify' and `OutputChangeNotify' events with DATA.
 
 Refresh when any CRTC/output changes."
   (exwm--log)
-  (let ((evt (xcb:unmarshal-new 'xcb:randr:Notify data))
-        notify)
-    (with-slots (subCode u) evt
-      (cond ((= subCode xcb:randr:Notify:CrtcChange)
-             (setq notify (slot-value u 'cc)))
-            ((= subCode xcb:randr:Notify:OutputChange)
-             (setq notify (slot-value u 'oc))))
-      (when notify
-        (with-slots (timestamp) notify
-          (when (> timestamp exwm-randr--last-timestamp)
-            (exwm-randr-refresh)
-            (setq exwm-randr--last-timestamp timestamp)))))))
+  (with-slots (subCode u)
+      (xcb:unmarshal-new 'xcb:randr:Notify data)
+    (when-let* ((notify
+                 (with-slots (cc oc) u
+                   (cond
+                    ((= subCode xcb:randr:Notify:CrtcChange) cc)
+                    ((= subCode xcb:randr:Notify:OutputChange) oc)))))
+      (with-slots (timestamp) notify
+        (when (> timestamp exwm-randr--last-timestamp)
+          (exwm-randr-refresh)
+          (setq exwm-randr--last-timestamp timestamp))))))
 
 (defun exwm-randr--on-ConfigureNotify (data _synthetic)
   "Handle `ConfigureNotify' event with DATA.
