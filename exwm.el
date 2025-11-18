@@ -181,29 +181,33 @@ Set during `exwm--init'.")
   "Update _NET_WM_DESKTOP.
 Argument XWIN contains the X window of the `exwm-mode' buffer."
   (exwm--log "#x%x" xwin)
-  (with-current-buffer (exwm--id->buffer xwin)
-    (let ((reply (xcb:+request-unchecked+reply exwm--connection
-                     (make-instance 'xcb:ewmh:get-_NET_WM_DESKTOP
-                                    :window xwin)))
-          desktop)
-      (when reply
-        (setq desktop (slot-value reply 'value))
-        (cond
-         ((and desktop (= desktop 4294967295.))
-          (unless (or (not exwm--floating-frame)
-                      (eq exwm--frame exwm-workspace--current)
-                      (and exwm--desktop
-                           (= desktop exwm--desktop)))
-            (exwm-layout--show xwin (frame-root-window exwm--floating-frame)))
-          (setq exwm--desktop desktop))
-         ((and desktop
-               (< desktop (exwm-workspace--count))
-               (if exwm--desktop
-                   (/= desktop exwm--desktop)
-                 (/= desktop (exwm-workspace--position exwm--frame))))
-          (exwm-workspace-move-window desktop xwin))
-         (t
-          (exwm-workspace--set-desktop xwin)))))))
+  (with-slots (value)
+      (xcb:+request-unchecked+reply exwm--connection
+          (make-instance 'xcb:ewmh:get-_NET_WM_DESKTOP
+                         :window xwin))
+    (exwm--set-desktop xwin value)))
+
+(defun exwm--set-desktop (id desktop)
+  "Set ID's workspace to DESKTOP."
+  (when-let* ((buffer (exwm--id->buffer id))
+              (_(buffer-live-p buffer)))
+    (with-current-buffer buffer
+      (cond
+       ((and desktop (= desktop #xffffffff))
+        (unless (or (not exwm--floating-frame)
+                    (eq exwm--frame exwm-workspace--current)
+                    (and exwm--desktop
+                         (= desktop exwm--desktop)))
+          (exwm-layout--show id (frame-root-window exwm--floating-frame)))
+        (setq exwm--desktop desktop))
+       ((and desktop
+             (< desktop (exwm-workspace--count))
+             (if exwm--desktop
+                 (/= desktop exwm--desktop)
+               (/= desktop (exwm-workspace--position exwm--frame))))
+        (exwm-workspace-move-window desktop id))
+       (t
+        (exwm-workspace--set-desktop id))))))
 
 (defun exwm--update-window-type (id &optional force)
   "Update `exwm-window-type' from _NET_WM_WINDOW_TYPE.
@@ -701,11 +705,7 @@ DATA contains unmarshalled PropertyNotify event data."
 
 (defun exwm--on-net-wm-desktop (id data)
   "Handle _NET_WM_DESKTOP message with ID and DATA."
-  (let ((buffer (exwm--id->buffer id))
-        (workspace (elt data 0)))
-    (when (and (buffer-live-p buffer)
-               (not (= workspace #xffffffff))) ;; TODO #172
-      (exwm-workspace-move-window workspace id))))
+  (exwm--set-desktop id (elt data 0)))
 
 (defun exwm--on-net-wm-state (id data)
   "Handle _NET_WM_STATE message with ID and DATA."
