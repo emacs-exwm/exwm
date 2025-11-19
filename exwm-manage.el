@@ -135,10 +135,6 @@ want to match against EXWM internal variables such as `exwm-title',
                           (cons match config)))
                       value))))
 
-;; FIXME: Make the following values as small as possible.
-(defconst exwm-manage--height-delta-min 5)
-(defconst exwm-manage--width-delta-min 5)
-
 ;; The _MOTIF_WM_HINTS atom (see <Xm/MwmUtil.h> for more details)
 ;; It's currently only used in 'exwm-manage' module
 (defvar exwm-manage--_MOTIF_WM_HINTS nil "_MOTIF_WM_HINTS atom.")
@@ -678,26 +674,7 @@ border-width: %d; sibling: #x%x; stack-mode: %d"
                  (or (exwm-layout--fullscreen-p)
                      ;; Make sure it's a floating X window wanting to resize
                      ;; itself.
-                     (or (not exwm--floating-frame)
-                         (progn
-                           (setq edges
-                                 (exwm--window-inside-pixel-edges
-                                  (get-buffer-window buffer t))
-                                 width-delta (- width (- (elt edges 2)
-                                                         (elt edges 0)))
-                                 height-delta (- height (- (elt edges 3)
-                                                           (elt edges 1))))
-                           ;; We cannot do resizing precisely for now.
-                           (and (if (= 0 (logand value-mask
-                                                 xcb:ConfigWindow:Width))
-                                    t
-                                  (< (abs width-delta)
-                                     exwm-manage--width-delta-min))
-                                (if (= 0 (logand value-mask
-                                                 xcb:ConfigWindow:Height))
-                                    t
-                                  (< (abs height-delta)
-                                     exwm-manage--height-delta-min))))))))
+                     (not exwm--floating-frame))))
           ;; Send client message for managed windows
           (with-current-buffer buffer
             (setq edges
@@ -724,6 +701,13 @@ border-width: %d; sibling: #x%x; stack-mode: %d"
                                        exwm--connection))))
         (if buffer
             (with-current-buffer buffer
+              (setq edges
+                    (exwm--window-inside-pixel-edges
+                     (get-buffer-window buffer t))
+                    width-delta (- width (- (elt edges 2)
+                                            (elt edges 0)))
+                    height-delta (- height (- (elt edges 3)
+                                              (elt edges 1))))
               (exwm--log "ConfigureWindow (resize floating X window)")
               (exwm--set-geometry (frame-parameter exwm--floating-frame
                                                    'exwm-outer-id)
