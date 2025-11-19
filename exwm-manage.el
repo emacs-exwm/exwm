@@ -729,10 +729,14 @@ border-width: %d; sibling: #x%x; stack-mode: %d"
                                                    'exwm-outer-id)
                                   nil
                                   nil
-                                  (+ (frame-outer-width exwm--floating-frame)
-                                     width-delta)
-                                  (+ (frame-outer-height exwm--floating-frame)
-                                     height-delta)))
+                                  (unless (= 0 (logand value-mask
+                                                       xcb:ConfigWindow:Width))
+                                    (+ (frame-outer-width exwm--floating-frame)
+                                       width-delta))
+                                  (unless (= 0 (logand value-mask
+                                                       xcb:ConfigWindow:Height))
+                                    (+ (frame-outer-height exwm--floating-frame)
+                                       height-delta))))
           (exwm--log "ConfigureWindow (preserve geometry)")
           ;; Configure the unmanaged window.
           ;; But Emacs frames should be excluded.  Generally we don't
