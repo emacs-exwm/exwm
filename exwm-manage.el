@@ -681,7 +681,7 @@ border-width: %d; sibling: #x%x; stack-mode: %d"
                   (if (exwm-layout--fullscreen-p)
                       (with-slots (x y width height)
                           (exwm-workspace--get-geometry exwm--frame)
-                        (list x y width height))
+                        (list x y (+ x width) (+ y height)))
                     (exwm--window-inside-absolute-pixel-edges
                      (get-buffer-window buffer t))))
             (exwm--log "Reply with ConfigureNotify (edges): %s" edges)
