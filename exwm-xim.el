@@ -59,6 +59,11 @@
 ;;    export GTK_IM_MODULE=xim
 ;;    export QT_IM_MODULE=xim
 ;;    export CLUTTER_IM_MODULE=xim
+;;
+;; However, to avoid deadlocks, emacs.useXIM must be set to false or
+;; off in your Xresources (see xrdb(1) and emacs(1)).  Alternatively,
+;; you may pass "--xrm=emacs.useXIM:false" as a command-line flag to
+;; Emacs.
 
 ;; References:
 ;; + XIM (https://www.x.org/releases/X11R7.6/doc/libX11/specs/XIM/xim.html)
@@ -673,11 +678,23 @@ Such event would be received when the client window is destroyed."
             (make-instance 'xcb:DestroyWindow :window server-xwin))
         (xcb:disconnect conn))))
 
+(defun exwm-xim--deadlock-warning ()
+  "Warn when XIM may cause Emacs to deadlock."
+  ;; NOTE: Checking `system-configuration-features' is unsupported,
+  ;; but this is JUST a warning, so it's probably fine.
+  (when (and (string-match-p "\\bXIM\\b" system-configuration-features)
+             (not (member (x-get-resource "useXIM" "UseXIM")
+                          '("false" "off"))))
+      (warn "Emacs itself is configured to use XIM and may deadlock \
+when trying to communicate with EXWM.  If this happens, set the \
+emacs.useXim Xresource to false or off (see xrdb(1) and emacs(1)).")))
+
 (cl-defun exwm-xim--init ()
   "Initialize the XIM module."
   (exwm--log)
   (when exwm-xim--conn
     (cl-return-from exwm-xim--init))
+  (exwm-xim--deadlock-warning)
   ;; Initialize atoms.
   (setq exwm-xim--@server (exwm--intern-atom "@server=exwm-xim")
         exwm-xim--LOCALES (exwm--intern-atom "LOCALES")
