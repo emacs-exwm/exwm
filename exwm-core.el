@@ -452,5 +452,12 @@ immediately enabled or disabled."
          (remove-hook 'exwm-exit-hook #',exit)
          (when exwm--connection (,exit)))))))
 
+(defun exwm--find-x-frame ()
+  "Find a frame whose terminal is an X display.
+Selected frame is checked first."
+  (cl-loop for term in (cons (frame-terminal (selected-frame)) (terminal-list))
+           if (eq 'x (terminal-live-p term))
+           return (car (frames-on-display-list term))))
+
 (provide 'exwm-core)
 ;;; exwm-core.el ends here
