@@ -733,7 +733,6 @@ Both DELTA-X and DELTA-Y default to 1.  This command should be bound locally."
   "Initialize floating module."
   (exwm--log)
   ;; Initialize cursors for moving/resizing a window
-  (xcb:cursor:init exwm--connection)
   (setq exwm-floating--cursor-move
         (xcb:cursor:load-cursor exwm--connection "fleur")
         exwm-floating--cursor-top-left

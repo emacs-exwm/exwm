@@ -1034,6 +1034,16 @@ manager.  If t, replace it, if nil, abort and ask the user if `ask'."
         (xcb:+request exwm--connection se))
       (setq exwm--wmsn-window new-owner))))
 
+(defun exwm--init-xcursor ()
+  "Initialize Xcursor for connection.
+Set the default cursor to `left_ptr'"
+  (xcb:cursor:init exwm--connection)
+  (xcb:+request exwm--connection
+      (make-instance 'xcb:ChangeWindowAttributes
+                     :window exwm--root
+                     :value-mask xcb:CW:Cursor
+                     :cursor (xcb:cursor:load-cursor exwm--connection "left_ptr"))))
+
 (cl-defun exwm--init (&optional frame)
   "Initialize EXWM.
 FRAME, if given, indicates the X display EXWM should manage."
@@ -1090,6 +1100,7 @@ FRAME, if given, indicates the X display EXWM should manage."
         (add-hook 'delete-terminal-functions 'exwm--on-delete-terminal)
         (exwm--lock)
         (exwm--init-icccm-ewmh)
+        (exwm--init-xcursor)
         (exwm-layout--init)
         (exwm-floating--init)
         (exwm-manage--init)
