@@ -420,18 +420,18 @@ attempt later."
              ;; Click to focus
              (setq fake-last-command t)
              (when-let* ((window (get-buffer-window buffer t))
-                         (_(not (eq window (selected-window))))
-                         (frame (window-frame window))
-                         (_(not (eq frame exwm-workspace--current))))
-               (if (exwm-workspace--workspace-p frame)
-                   ;; The X window is on another workspace
-                   (exwm-workspace-switch frame)
-                 (with-current-buffer buffer
-                   (when (and (derived-mode-p 'exwm-mode)
-                              (not (eq exwm--frame
-                                       exwm-workspace--current)))
-                     ;; The floating X window is on another workspace
-                     (exwm-workspace-switch exwm--frame))))
+                         (_(not (eq window (selected-window)))))
+               (when-let* ((frame (window-frame window))
+                           (_(not (eq frame exwm-workspace--current))))
+                 (if (exwm-workspace--workspace-p frame)
+                     ;; The X window is on another workspace
+                     (exwm-workspace-switch frame)
+                   (with-current-buffer buffer
+                     (when (and (derived-mode-p 'exwm-mode)
+                                (not (eq exwm--frame
+                                         exwm-workspace--current)))
+                       ;; The floating X window is on another workspace
+                       (exwm-workspace-switch exwm--frame)))))
                ;; It has been reported that the `window' may have be deleted
                (unless (window-live-p window)
                  (setq window (get-buffer-window buffer t)))
