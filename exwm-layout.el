@@ -202,6 +202,7 @@ See variable `exwm-layout-auto-iconify'."
     (cl-pushnew xcb:Atom:_NET_WM_STATE_FULLSCREEN exwm--ewmh-state)
     (exwm-layout--set-ewmh-state exwm--id)
     (xcb:flush exwm--connection)
+    (set-window-parameter (get-buffer-window) 'exwm-dedicated (window-dedicated-p (get-buffer-window)))
     (set-window-dedicated-p (get-buffer-window) t)
     (exwm-input--release-keyboard exwm--id)))
 
@@ -231,7 +232,7 @@ See variable `exwm-layout-auto-iconify'."
         (when window
           (exwm-layout--show exwm--id window))))
     (xcb:flush exwm--connection)
-    (set-window-dedicated-p (get-buffer-window) nil)
+    (set-window-dedicated-p (get-buffer-window) (window-parameter (get-buffer-window) 'exwm-dedicated))
     (when (eq 'line-mode exwm--selected-input-mode)
       (exwm-input--grab-keyboard exwm--id))))
 
