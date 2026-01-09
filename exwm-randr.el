@@ -108,9 +108,6 @@ called explicitly to assign the correct workspaces to the correct monitors.
 (defvar exwm-randr--prev-screen-change-timestamp 0
   "The most recent ScreenChangeNotify config change timestamp.")
 
-(defvar exwm-randr--compatibility-mode nil
-  "Non-nil when the server does not support RandR 1.5 protocol.")
-
 ;;;###autoload
 (define-minor-mode exwm-randr-mode
   "Toggle EXWM randr support."
@@ -155,49 +152,6 @@ called explicitly to assign the correct workspaces to the correct monitors.
           (exwm-randr--get-monitor-alias primary-monitor
                                          monitor-geometry-alist))))
 
-(defun exwm-randr--get-outputs ()
-  "Get RandR 1.2 outputs.
-
-Only used when RandR 1.5 is not supported by the server."
-  (exwm--log)
-  (let (output-name geometry output-geometry-alist primary-output)
-    (with-slots (config-timestamp outputs)
-        (xcb:+request-unchecked+reply exwm-randr--connection
-            (make-instance 'xcb:randr:GetScreenResourcesCurrent
-                           :window exwm--root))
-      (when (> config-timestamp exwm-randr--last-timestamp)
-        (setq exwm-randr--last-timestamp config-timestamp))
-      (dolist (output outputs)
-        (with-slots (crtc connection name)
-            (xcb:+request-unchecked+reply exwm-randr--connection
-                (make-instance 'xcb:randr:GetOutputInfo
-                               :output output
-                               :config-timestamp config-timestamp))
-          (when (and (= connection xcb:randr:Connection:Connected)
-                     (/= crtc 0))
-            (with-slots (x y width height)
-                (xcb:+request-unchecked+reply exwm-randr--connection
-                    (make-instance 'xcb:randr:GetCrtcInfo
-                                   :crtc crtc
-                                   :config-timestamp config-timestamp))
-              (setq output-name (decode-coding-string
-                                 (apply #'unibyte-string name) 'utf-8)
-                    geometry (make-instance 'xcb:RECTANGLE
-                                            :x x
-                                            :y y
-                                            :width width
-                                            :height height)
-                    output-geometry-alist (cons (cons output-name geometry)
-                                                output-geometry-alist))
-              (exwm--log "%s: %sx%s+%s+%s" output-name x y width height)
-              ;; The primary output is the first one.
-              (unless primary-output
-                (setq primary-output output-name)))))))
-    (exwm--log "Primary output: %s" primary-output)
-    (list primary-output output-geometry-alist
-          (exwm-randr--get-monitor-alias primary-output
-                                         output-geometry-alist))))
-
 (defun exwm-randr--get-monitor-alias (primary-monitor monitor-geometry-alist)
   "Generate monitor aliases using PRIMARY-MONITOR MONITOR-GEOMETRY-ALIST.
 
@@ -229,9 +183,7 @@ In a mirroring setup some monitors overlap and should be treated as one."
   (interactive)
   (exwm--log)
   (exwm-randr--assert-connected)
-  (let* ((result (if exwm-randr--compatibility-mode
-                     (exwm-randr--get-outputs)
-                   (exwm-randr--get-monitors)))
+  (let* ((result (exwm-randr--get-monitors))
          (primary-monitor (elt result 0))
          (monitor-geometry-alist (elt result 1))
          (monitor-alias-alist (elt result 2))
@@ -343,15 +295,11 @@ Refresh when any RandR 1.5 monitor changes."
       (xcb:+request-unchecked+reply exwm-randr--connection
           (make-instance 'xcb:randr:QueryVersion
                          :major-version 1 :minor-version 5))
-    (cond ((and (= major-version 1) (= minor-version 5))
-           (setq exwm-randr--compatibility-mode nil))
-          ((and (= major-version 1) (>= minor-version 2))
-           (setq exwm-randr--compatibility-mode t))
-          (t
-           (xcb:disconnect exwm-randr--connection)
-           (setq exwm-randr--connection nil)
-           (error "[EXWM] The server only support RandR version up to %d.%d"
-                  major-version minor-version)))
+    (unless (and (= major-version 1) (>= minor-version 5))
+      (xcb:disconnect exwm-randr--connection)
+      (setq exwm-randr--connection nil)
+      (error "[EXWM] The server only support RandR version up to %d.%d"
+             major-version minor-version))
     ;; External monitor(s) may already be connected.
     (run-hooks 'exwm-randr-screen-change-hook)
     (exwm-randr-refresh)
