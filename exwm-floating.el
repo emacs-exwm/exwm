@@ -174,10 +174,10 @@ configured dimension is invalid."
                      ;;
                      ;; Additionally, we need the frame visible to correctly
                      ;; adjust its size.
-                     (left . ,(* window-min-width -10000))
-                     (top . ,(* window-min-height -10000))
-                     (width . ,window-min-width)
-                     (height . ,window-min-height)
+                     ;;(left . ,(* window-min-width -10000))
+                     ;;(top . ,(* window-min-height -10000))
+                     ;;(width . ,window-min-width)
+                     ;;(height . ,window-min-height)
                      (unsplittable . t))))
            (outer-id (string-to-number (frame-parameter frame 'outer-window-id)))
            (window-id (string-to-number (frame-parameter frame 'window-id)))
@@ -223,7 +223,7 @@ configured dimension is invalid."
           (set-window-parameter window prop 'none))))
 
       ;; We MUST redisplay with the frame visible here in order to correctly calculate the sizes.
-      (redisplay)
+      ;;(redisplay)
 
       ;; Adjust to container to fit the screen, centering dialogs, adjusting for the frame/borders,
       ;; and applying user size adjustments.
@@ -253,22 +253,22 @@ configured dimension is invalid."
             (setq x (+ screen-x (/ (- screen-width width) 2))
                   y (+ screen-y (/ (- screen-height height) 2)))))
 
-        ;; Translate the window size hints into the correct container size.
-        ;; But avoid moving the window border off-screen in the process.
-        (let* ((outer-edges (frame-edges frame 'outer-edges))
-               (window-edges (exwm--window-inside-absolute-pixel-edges window))
-               (offset-left (- (elt window-edges 0) (elt outer-edges 0)))
-               (offset-right (- (elt outer-edges 2) (elt window-edges 2)))
-               (offset-top (- (elt window-edges 1) (elt outer-edges 1)))
-               (offset-bottom (- (elt outer-edges 3) (elt window-edges 3)))
-               (new-x (- x offset-left border-width))
-               (new-y (- y offset-top border-width)))
-          ;; Update the x/y but avoid moving the frame off-screen if it was previously on-screen.
-          (when (or (<= screen-x new-x) (< x screen-x)) (setq x new-x))
-          (when (or (<= screen-y new-y) (< y screen-y)) (setq y new-y))
-          ;; Always update the width/height.
-          (setq height (+ height offset-top offset-bottom)
-                width (+ width offset-left offset-right)))
+        ;; ;; Translate the window size hints into the correct container size.
+        ;; ;; But avoid moving the window border off-screen in the process.
+        ;; (let* ((outer-edges (frame-edges frame 'outer-edges))
+        ;;        (window-edges (exwm--window-inside-absolute-pixel-edges window))
+        ;;        (offset-left (- (elt window-edges 0) (elt outer-edges 0)))
+        ;;        (offset-right (- (elt outer-edges 2) (elt window-edges 2)))
+        ;;        (offset-top (- (elt window-edges 1) (elt outer-edges 1)))
+        ;;        (offset-bottom (- (elt outer-edges 3) (elt window-edges 3)))
+        ;;        (new-x (- x offset-left border-width))
+        ;;        (new-y (- y offset-top border-width)))
+        ;;   ;; Update the x/y but avoid moving the frame off-screen if it was previously on-screen.
+        ;;   (when (or (<= screen-x new-x) (< x screen-x)) (setq x new-x))
+        ;;   (when (or (<= screen-y new-y) (< y screen-y)) (setq y new-y))
+        ;;   ;; Always update the width/height.
+        ;;   (setq height (+ height offset-top offset-bottom)
+        ;;         width (+ width offset-left offset-right)))
 
         ;; Make it fit on the screen.
         (cond
@@ -299,6 +299,7 @@ configured dimension is invalid."
       (exwm--log "Floating geometry (final): %dx%d%+d%+d" width height x y)
 
       ;; DO NOT USE set-frame-size. Emacs will mess up the size.
+      ;;(set-frame-size-and-position-pixelwise frame width height x y)
       (exwm--set-geometry outer-id x y width height)
 
       ;; Create the frame container as the parent of the frame.
