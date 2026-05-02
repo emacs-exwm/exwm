@@ -623,7 +623,7 @@ the request data or where to fetch the data."
       ;; Send long requests with properties.
       (setq property (exwm--intern-atom (format "_EXWM_XIM_%x"
                                                 exwm-xim--property-index)))
-      (cl-incf exwm-xim--property-index)
+      (incf exwm-xim--property-index)
       (xcb:+request conn
           (make-instance 'xcb:ChangeProperty
                          :mode xcb:PropMode:Append

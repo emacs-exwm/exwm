@@ -387,7 +387,7 @@ Show PROMPT to the user if non-nil."
                           (or (not position)
                               (< (max beg y)
                                  (min end (+ y height)))))
-                 (cl-decf width delta)
+                 (decf width delta)
                  (setf x size)))
               ('right
                (setq delta (- size (- root-width x width)))
@@ -396,7 +396,7 @@ Show PROMPT to the user if non-nil."
                           (or (not position)
                               (< (max beg y)
                                  (min end (+ y height)))))
-                 (cl-decf width delta)))
+                 (decf width delta)))
               ('top
                (setq delta (- size y))
                (when (and (< 0 delta)
@@ -404,7 +404,7 @@ Show PROMPT to the user if non-nil."
                           (or (not position)
                               (< (max beg x)
                                  (min end (+ x width)))))
-                 (cl-decf height delta)
+                 (decf height delta)
                  (setf y size)))
               ('bottom
                (setq delta (- size (- root-height y height)))
@@ -413,7 +413,7 @@ Show PROMPT to the user if non-nil."
                           (or (not position)
                               (< (max beg x)
                                  (min end (+ x width)))))
-                 (cl-decf height delta))))))))
+                 (decf height delta))))))))
     ;; Save the result.
     (setq exwm-workspace--workareas workareas)
     (xcb:flush exwm--connection))
@@ -453,7 +453,7 @@ ACTIVE indicates whether to set the frame active or inactive."
       (xcb:flush exwm--connection)))
   ;; This is only used for workspace initialization.
   (when exwm-workspace--fullscreen-frame-count
-    (cl-incf exwm-workspace--fullscreen-frame-count)))
+    (incf exwm-workspace--fullscreen-frame-count)))
 
 (defun exwm-workspace--resize-minibuffer-frame ()
   "Resize minibuffer (and its container) to fit the size of workspace."
@@ -1027,7 +1027,7 @@ INDEX must not exceed the current number of workspaces."
     (while (and (setq tmp (or (get-buffer newname)
                               (get-buffer (concat " " newname))))
                 (not (eq tmp (current-buffer))))
-      (setq newname (format "%s<%d>" basename (cl-incf counter))))
+      (setq newname (format "%s<%d>" basename (incf counter))))
     (let ((buffer-list-update-hook
            (remq #'exwm-input--on-buffer-list-update
                  buffer-list-update-hook)))

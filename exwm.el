@@ -5,7 +5,7 @@
 ;; Author: Chris Feng <chris.w.feng@gmail.com>
 ;; Maintainer: Adrián Medraño Calvo <adrian@medranocalvo.com>, Steven Allen <steven@stebalien.com>, Daniel Mendler <mail@daniel-mendler.de>
 ;; Version: 0.34
-;; Package-Requires: ((emacs "27.1") (xelb "0.22") (compat "30"))
+;; Package-Requires: ((emacs "27.1") (xelb "0.22") (compat "31"))
 ;; Keywords: unix
 ;; URL: https://github.com/emacs-exwm/exwm
 
@@ -761,7 +761,7 @@ DATA contains unmarshalled PropertyNotify event data."
     (cond ((= type xcb:Atom:_NET_WM_PING)
              (when-let* (((eq id exwm--root))
                          (buf (exwm--id->buffer client)))
-               (cl-incf (buffer-local-value 'exwm--ping buf))))
+               (incf (buffer-local-value 'exwm--ping buf))))
           (t (exwm--log "Unhandled WM_PROTOCOLS of type: %d" type)))))
 
 (defun exwm--on-wm-change-state (id data)
