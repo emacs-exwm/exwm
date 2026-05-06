@@ -964,7 +964,7 @@ INDEX must not exceed the current number of workspaces."
         (xcb:flush exwm--connection)))
     (setq exwm-workspace--switch-history-outdated t)))
 
-(defun exwm-workspace-switch-to-buffer (buffer-or-name)
+(defun exwm-workspace-switch-to-buffer (buffer-or-name &optional norecord force-same-window)
   "Make selected window display BUFFER-OR-NAME."
   (interactive
    (let ((inhibit-quit t))
@@ -998,7 +998,7 @@ INDEX must not exceed the current number of workspaces."
           (if (eq exwm--frame exwm-workspace--current)
               ;; On the current workspace.
               (if (not exwm--floating-frame)
-                  (switch-to-buffer buffer-or-name)
+                  (switch-to-buffer buffer-or-name norecord force-same-window)
                 ;; Select the floating frame.
                 (select-frame-set-input-focus exwm--floating-frame)
                 (select-window (frame-root-window exwm--floating-frame)))
@@ -1014,7 +1014,7 @@ INDEX must not exceed the current number of workspaces."
                                      buffer-or-name)))
               (exwm-workspace-switch exwm--frame)))
         ;; Ordinary buffer.
-        (switch-to-buffer buffer-or-name)))))
+        (switch-to-buffer buffer-or-name norecord force-same-window)))))
 
 (defun exwm-workspace-rename-buffer (newname)
   "Rename current buffer to NEWNAME."
