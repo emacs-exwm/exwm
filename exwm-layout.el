@@ -36,7 +36,7 @@
   :type 'boolean)
 
 (defcustom exwm-layout-fullscreen-release-keyboard t
-  "Non-nil to release the keyboard (enter char-mode) when an application is full-screen.
+  "Non-nil to release the keyboard when an application is fullscreened.
 That is, when t, Emacs won't intercept keys sent to fullscreen applications."
   :type 'boolean)
 
