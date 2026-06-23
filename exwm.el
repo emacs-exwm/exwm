@@ -5,7 +5,7 @@
 ;; Author: Chris Feng <chris.w.feng@gmail.com>
 ;; Maintainer: Adrián Medraño Calvo <adrian@medranocalvo.com>, Steven Allen <steven@stebalien.com>, Daniel Mendler <mail@daniel-mendler.de>
 ;; Version: 0.34
-;; Package-Requires: ((emacs "27.1") (xelb "0.22") (compat "31"))
+;; Package-Requires: ((emacs "29.1") (xelb "0.22") (compat "31"))
 ;; Keywords: unix
 ;; URL: https://github.com/emacs-exwm/exwm
 
@@ -78,7 +78,6 @@
 (require 'exwm-floating)
 (require 'exwm-manage)
 (require 'exwm-input)
-(eval-when-compile (require 'subr-x)) ;; Needed on 28 for when-let*
 
 (declare-function x-get-atom-name "C source code" (VALUE &optional FRAME))
 

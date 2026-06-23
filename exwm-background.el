@@ -33,7 +33,6 @@
 ;;; Code:
 
 (require 'exwm-core)
-(eval-when-compile (require 'subr-x)) ;; Needed on 28 for when-let*
 
 (defgroup exwm-background nil
   "Background support."
