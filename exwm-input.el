@@ -170,13 +170,15 @@ Current buffer will be the `exwm-mode' buffer when this hook runs.")
     (if (or (exwm--id->buffer from)
             (eq from id))
         (exwm--log "#x%x => #x%x" (or from 0) (or id 0))
-      ;; Attempt to find the top-level X window for a 'focus proxy'.
-      (unless (= from xcb:Window:None)
-        (setq tree (xcb:+request-unchecked+reply exwm--connection
-                       (make-instance 'xcb:QueryTree
-                                      :window from)))
-        (when tree
-          (setq from (slot-value tree 'parent))))
+      ;; Attempt to find the top-level X window for a 'focus proxy',
+      ;; which may be nested several levels below it.
+      (while (and (> from xcb:InputFocus:PointerRoot)
+                  (/= from exwm--root)
+                  (not (exwm--id->buffer from))
+                  (setq tree (xcb:+request-unchecked+reply exwm--connection
+                                 (make-instance 'xcb:QueryTree
+                                                :window from))))
+        (setq from (slot-value tree 'parent)))
       (exwm--log "#x%x (corrected) => #x%x" (or from 0) (or id 0)))
     (when (and (exwm--id->buffer id)
                ;; Avoid redundant input focus transfer.
