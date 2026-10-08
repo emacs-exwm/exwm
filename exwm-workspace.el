@@ -1380,8 +1380,8 @@ ALIST is an action alist, as accepted by function `display-buffer'."
 
 (defun exwm-workspace--get-next-workspace (frame &optional allow-active)
   "Return the next workspace if workspace FRAME were removed.
-Return nil there are no other worksapces or ALLOW-ACTIVE is non-nil and
-all other workspaces are currently visible on other monitors."
+Return nil if there are no other workspaces, or if ALLOW-ACTIVE is nil
+and all other workspaces are currently visible on other monitors."
   (let* ((index (exwm-workspace--position frame))
          (count (exwm-workspace--count)))
     (or
@@ -1389,13 +1389,13 @@ all other workspaces are currently visible on other monitors."
               for nextw = (elt exwm-workspace--list i)
               when (and (not (eq frame nextw))
                         (or allow-active
-                            (exwm-workspace--active-p nextw)))
+                            (not (exwm-workspace--active-p nextw))))
               return nextw)
      (cl-loop for i from (1- index) downto 0
               for nextw = (elt exwm-workspace--list i)
               when (and (not (eq frame nextw))
                         (or allow-active
-                            (exwm-workspace--active-p nextw)))
+                            (not (exwm-workspace--active-p nextw))))
               return nextw))))
 
 (defun exwm-workspace--remove-frame-as-workspace (frame &optional quit)
